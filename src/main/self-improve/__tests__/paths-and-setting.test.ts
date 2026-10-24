@@ -1,10 +1,14 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, mkdir, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { getCompengDir, getMemoryIndexImportPath, getMemoryIndexPath } from '../paths';
 import { isSelfImproveEnabled, isSelfImproveEnabledForPath } from '../setting';
 import { SELF_IMPROVE_NUDGE } from '../nudge';
+
+/** The app's project list, as the project store holds it */
+const projects = vi.hoisted((): Array<{ path: string; settings: { selfImprove?: boolean } }> => []);
+vi.mock('../../project-store', () => ({ projectStore: { getProjects: () => projects } }));
 
 let project: string;
 
@@ -33,30 +37,31 @@ describe('paths', () => {
 });
 
 describe('isSelfImproveEnabledForPath', () => {
-  const write = async (settings: unknown) => {
-    await mkdir(path.join(project, '.workbench'), { recursive: true });
-    await writeFile(path.join(project, '.workbench', 'settings.json'), JSON.stringify(settings));
+  const setAppSettings = (settings: { selfImprove?: boolean } | undefined) => {
+    projects.splice(0, projects.length, ...(settings ? [{ path: project, settings }] : []));
   };
 
-  it('is false without a settings file, and false for an undefined path', async () => {
+  it('is false for a path the app has no project for, and for an undefined path', async () => {
+    setAppSettings(undefined);
     expect(await isSelfImproveEnabledForPath(project)).toBe(false);
     expect(await isSelfImproveEnabledForPath(undefined)).toBe(false);
   });
 
-  it('is true only when the switch is explicitly on', async () => {
-    await write({ selfImprove: true });
+  it("is true only when the app's switch is explicitly on", async () => {
+    setAppSettings({ selfImprove: true });
     expect(await isSelfImproveEnabledForPath(project)).toBe(true);
+    expect(await isSelfImproveEnabledForPath(path.join(project, '.'))).toBe(true);
 
-    await write({ selfImprove: false });
+    setAppSettings({ selfImprove: false });
     expect(await isSelfImproveEnabledForPath(project)).toBe(false);
 
-    await write({ useClaudeMd: true });
+    setAppSettings({});
     expect(await isSelfImproveEnabledForPath(project)).toBe(false);
   });
 
-  it('is false for unreadable settings rather than throwing', async () => {
-    await mkdir(path.join(project, '.workbench'), { recursive: true });
-    await writeFile(path.join(project, '.workbench', 'settings.json'), '{ not json');
+  it("ignores a switch committed to the project's own settings file", async () => {
+    setAppSettings({});
+    await writeFile(path.join(project, '.workbench', 'settings.json'), JSON.stringify({ selfImprove: true }));
     expect(await isSelfImproveEnabledForPath(project)).toBe(false);
   });
 });

@@ -11,7 +11,7 @@ import os from 'os';
 import path from 'path';
 
 vi.mock('../../../project-store', () => ({
-  projectStore: { invalidateTasksCache: vi.fn() }
+  projectStore: { invalidateTasksCache: vi.fn(), getProjects: () => [] }
 }));
 vi.mock('../../../cli-tool-manager', () => ({
   getToolPath: () => 'git',

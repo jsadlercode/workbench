@@ -315,6 +315,19 @@ describe('ProjectStore', () => {
       store.updateProjectSettings('p1', { model: 'sonnet' });
       expect(JSON.parse(readFileSync(projectFile(), 'utf-8')).useClaudeMd).toBe(false);
     });
+
+    it('keeps self-improve in the app list and ignores a value committed to the project', async () => {
+      initializeProject();
+      writeFileSync(projectFile(), JSON.stringify({ selfImprove: true }));
+      const { ProjectStore } = await import('../project-store');
+      const store = new ProjectStore();
+      const project = store.addProject(TEST_PROJECT_PATH);
+      expect(store.getProject(project.id)?.settings.selfImprove).not.toBe(true);
+
+      store.updateProjectSettings(project.id, { selfImprove: true });
+      expect(JSON.parse(readFileSync(projectFile(), 'utf-8'))).not.toHaveProperty('selfImprove');
+      expect(JSON.parse(readFileSync(storeFile(), 'utf-8')).projects[0].settings.selfImprove).toBe(true);
+    });
   });
 
   describe('getTasks', () => {
