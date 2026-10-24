@@ -107,7 +107,7 @@ export function BranchSettings({ projectPath, settings, setSettings }: BranchSet
           description={t('projectPages.general.branches.pushNewBranchesDescription')}
         >
           <Switch
-            checked={settings.pushNewBranches !== false}
+            checked={settings.pushNewBranches === true}
             onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, pushNewBranches: checked }))}
             aria-label={t('projectPages.general.branches.pushNewBranches')}
           />

@@ -371,7 +371,7 @@ export class AgentManager extends EventEmitter {
         task.specId,
         baseBranch,
         task.metadata?.useLocalBranch ?? false,
-        task.metadata?.pushNewBranches ?? project.settings?.pushNewBranches !== false,
+        task.metadata?.pushNewBranches ?? project.settings?.pushNewBranches === true,
         project.autoBuildPath,
       );
       worktreePath = worktree.worktreePath;

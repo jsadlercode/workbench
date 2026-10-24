@@ -49,7 +49,7 @@ export function useTaskGitOptions(projectId: string, storedBranch?: string): Tas
   const { branches, detectedBranch, isLoading } = useProjectBranches(project?.path);
 
   const projectDefaultBranch = project?.settings?.mainBranch || detectedBranch;
-  const projectPushNewBranches = project?.settings?.pushNewBranches !== false;
+  const projectPushNewBranches = project?.settings?.pushNewBranches === true;
 
   // A branch the project does not have is the one the picker labels "Not in the project". The
   // branch list is empty while it loads, and an empty list says nothing about any branch

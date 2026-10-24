@@ -45,7 +45,7 @@ export function TaskCreationWizard({
   const [baseBranch, setBaseBranch] = useState<string>(PROJECT_DEFAULT_BRANCH);
   // Worktree isolation - default to true for safety
   const [useWorktree, setUseWorktree] = useState(true);
-  const [pushNewBranches, setPushNewBranches] = useState(true);
+  const [pushNewBranches, setPushNewBranches] = useState(false);
 
   // The project's branches (the shared list, no git calls when the dialog opens) and its own
   // git defaults, shared with the edit dialog
@@ -127,7 +127,7 @@ export function TaskCreationWizard({
       // Set useLocalBranch when user explicitly selects a local branch
       // This preserves gitignored files (.env, configs) by not switching to origin
       if (isSelectedBranchLocal) metadata.useLocalBranch = true;
-      if (!pushNewBranches) metadata.pushNewBranches = false;
+      if (pushNewBranches !== projectPushNewBranches) metadata.pushNewBranches = pushNewBranches;
       metadata.mcpConnectors = mcpConnectors;
 
       // The title is generated from the description (and refined by triage when the task starts)
