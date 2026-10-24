@@ -19,6 +19,7 @@ import {
   resetTaskToInitialState
 } from './plan-file-utils';
 import { discardTaskWorktree } from '../../utils/worktree-cleanup';
+import { discardStagedMerge } from '../../utils/discard-staged-merge';
 import { taskLogService } from '../../task-log-service';
 import { archiveCurrentRun } from '../../task-run-archive';
 import { writeFileAtomicSync } from '../../utils/atomic-file';
@@ -526,12 +527,8 @@ export function registerTaskExecutionHandlers(
       // continues in the task's worktree (a fresh one with "Start over")
       const worktreePath = findTaskWorktree(project.path, task.specId);
       if (worktreePath && task.stagedInMainProject) {
-        const gitOptions = { cwd: project.path, isolated: true };
         try {
-          await git(['reset', 'HEAD'], gitOptions);
-          await git(['checkout', '--', '.'], gitOptions);
-          // Exclude .workbench to preserve specs and worktree data
-          await git(['clean', '-fd', '-e', '.workbench'], gitOptions);
+          await discardStagedMerge(project.path);
           console.warn('[TASK_REVIEW] Main project restored to pre-merge state');
         } catch (error) {
           console.warn('[TASK_REVIEW] Could not discard staged changes in the main project:', error);
