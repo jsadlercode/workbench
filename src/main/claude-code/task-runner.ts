@@ -6,8 +6,8 @@
  *
  *   triage    short read-only run: model, effort, plan or not (see triage.ts)
  *   plan      optional: `--permission-mode plan`, returns the plan as structured output
- *   implement resumes the same session with `--dangerously-skip-permissions` (the worktree
- *             isolates the run) and the triage model/effort
+ *   implement resumes the same session in `--permission-mode auto` (a classifier reviews each
+ *             action) with the triage model/effort
  *   validate  optional: same session runs the project's checks, reviews the diff with fresh
  *             eyes (/code-review or a subagent), commits, and returns a structured report
  *   revise    after "request changes": same session gets the reviewer's feedback, then validates
@@ -91,7 +91,7 @@ export interface TaskRunConfig {
   worktreePath: string;
   /**
    * The session works in its own git worktree (default). When false it works directly in the
-   * project checkout, so permission checks stay on (auto mode) instead of being bypassed.
+   * project checkout. Either way permission checks stay on (auto mode).
    */
   isolated?: boolean;
   branch: string;
@@ -218,7 +218,7 @@ function buildSystemPrompt(config: TaskRunConfig, specDirRelative: string, paral
 - Workbench keeps its own task files in \`${specDirRelative}\`. Don't modify or commit them.`
       : `## Environment
 - Your working directory is an isolated git worktree on branch \`${config.branch}\`, created from \`${config.baseBranch}\`. Edits here never touch the user's main checkout. Stay inside this worktree.
-- Permission checks are off because of that isolation. Still never push, force-push, rewrite the history of \`${config.baseBranch}\`, publish packages, deploy, or change anything outside the worktree.
+- Never push, force-push, rewrite the history of \`${config.baseBranch}\`, publish packages, deploy, or change anything outside the worktree.
 - Workbench keeps its own task files in \`${specDirRelative}\`. Don't modify or commit them.`,
     `## How to work
 - Follow the project's CLAUDE.md, conventions and existing patterns. Keep the change focused on the task.
@@ -474,7 +474,7 @@ export class ClaudeTaskRun {
     const phase = this.beginPhase(name, {
       model,
       effort,
-      permissionMode: name === 'plan' ? 'plan' : this.config.isolated === false ? 'auto' : 'bypassPermissions',
+      permissionMode: name === 'plan' ? 'plan' : 'auto',
       sessionId,
     });
     if (!this.info.sessionId) this.info.sessionId = sessionId;
@@ -694,14 +694,9 @@ Apply them, verify with ${verificationHint(triage)}, and commit the result.`;
       '--append-system-prompt', buildSystemPrompt(this.config, specDirRelative, parallelTasksPrompt),
       '--name', `${this.config.specId}: ${this.info.triage?.title || this.config.title}`.slice(0, 120),
     ];
-    if (params.name === 'plan') {
-      args.push('--permission-mode', 'plan');
-    } else if (this.config.isolated === false) {
-      // Not isolated: a classifier reviews actions instead of skipping all checks
-      args.push('--permission-mode', 'auto');
-    } else {
-      args.push('--dangerously-skip-permissions');
-    }
+    // A worktree isolates files, not the network, credentials or the rest of the disk, so later
+    // steps never skip checks: a classifier reviews each action
+    args.push('--permission-mode', params.name === 'plan' ? 'plan' : 'auto');
     if (params.resume) {
       args.push('--resume', params.sessionId);
     } else {

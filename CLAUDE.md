@@ -9,7 +9,7 @@ autonomously. Every task runs in its own git worktree so the main branch stays s
 
 **Core workflow:** User creates a task (description, images, connectors, git options) → a short Claude Code **triage**
 run picks model, effort and whether to plan → Claude Code **plans** (plan mode, optional) → **implements** in the task's
-worktree (same session, permission checks off) → **validates** (project checks + fresh-context review + commit) → user
+worktree (same session, auto permission mode) → **validates** (project checks + fresh-context review + commit) → user
 reviews, requests changes (same session continues) or merges.
 
 **Main features:**
@@ -164,8 +164,8 @@ workbench/
     effort `low…max`, needsPlan, scope, title, verification commands). Rules follow Claude Code's model-config and
     best-practices docs; Settings > Claude Code can fix model/effort or force planning on/off.
   - `plan`: `--permission-mode plan` + structured plan (headless plan mode has no `ExitPlanMode`), saved to `plan.md`.
-  - `implement`: resumes the same session (`--resume`) with `--dangerously-skip-permissions` (worktree isolation;
-    without a worktree it uses `--permission-mode auto`) and the triage model/effort.
+  - `implement`: resumes the same session (`--resume`) with `--permission-mode auto` (a classifier reviews each
+    action; a worktree isolates files, not credentials or the network) and the triage model/effort.
   - `validate`: same session runs checks, reviews the diff with fresh eyes (`/code-review` or a subagent), commits,
     returns a structured `ValidationReport`. `revise` mode applies "request changes" feedback, then validates again.
   - State in `<specDir>/claude_run.json` (`ClaudeRunInfo`: session id, triage, plan, phases with cost, `system/init`

@@ -143,13 +143,15 @@ describe('ClaudeTaskRun', () => {
     expect(outcome.status).toBe('completed');
     expect(events).toEqual(['CODING_STARTED', 'QA_STARTED', 'QA_PASSED']);
 
-    // Plan runs in plan mode on a new session, later steps resume it with permissions bypassed
+    // Plan runs in plan mode on a new session, later steps resume it in auto mode
     const [plan, implement, validate] = spawned.map((s) => s.args);
     expect(argValue(plan, '--permission-mode')).toBe('plan');
     expect(argValue(plan, '--model')).toBe('opus');
     expect(plan).toContain('--session-id');
     expect(plan).toContain('--json-schema');
-    expect(implement).toContain('--dangerously-skip-permissions');
+    expect(argValue(implement, '--permission-mode')).toBe('auto');
+    expect(argValue(validate, '--permission-mode')).toBe('auto');
+    expect(spawned.flatMap((s) => s.args)).not.toContain('--dangerously-skip-permissions');
     // The session id reported by Claude Code is the one later steps resume
     expect(argValue(implement, '--resume')).toBe('s1');
     expect(argValue(implement, '--model')).toBe('sonnet');
@@ -176,7 +178,7 @@ describe('ClaudeTaskRun', () => {
     const outcome = await run.run();
     expect(outcome.status).toBe('completed');
     expect(spawned).toHaveLength(1);
-    expect(spawned[0].args).toContain('--dangerously-skip-permissions');
+    expect(argValue(spawned[0].args, '--permission-mode')).toBe('auto');
     expect(spawned[0].args).not.toContain('--resume');
   });
 
