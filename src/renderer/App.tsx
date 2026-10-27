@@ -17,6 +17,7 @@ import { MemoryGraph } from './components/memory/MemoryGraph';
 import { useMemoryGraphStore } from './stores/memory-graph-store';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TaskDetailModal } from './components/task-detail/TaskDetailModal';
+import { FocusMode } from './components/focus/FocusMode';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog, type AppSection } from './components/settings/AppSettings';
 import type { ProjectSettingsSection } from './components/settings/ProjectSettingsContent';
@@ -758,6 +759,9 @@ export function App() {
           task={selectedTask}
           onOpenChange={(open) => !open && handleCloseTaskDetail()}
         />
+
+        {/* Focus mode: always mounted so a timer running out is caught while it is hidden */}
+        <FocusMode onOpenTask={handleTaskClick} />
 
         {/* Dialogs */}
         {(activeProjectId || selectedProjectId) && (

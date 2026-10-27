@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { arrayMove } from '@dnd-kit/sortable';
-import type { Task, TaskStatus, SubtaskStatus, ImplementationPlan, Subtask, TaskMetadata, ExecutionProgress, ExecutionPhase, ReviewReason, TaskDraft, ImageAttachment, TaskOrderState, TaskReviewOptions } from '../../shared/types';
+import type { Task, TaskStatus, SubtaskStatus, ImplementationPlan, Subtask, TaskMetadata, ExecutionProgress, ExecutionPhase, ReviewReason, TaskDraft, ImageAttachment, TaskOrderState, TaskReviewOptions, FocusSession } from '../../shared/types';
 import { debugLog, debugWarn } from '../../shared/utils/debug-logger';
 import { useProjectStore } from './project-store';
 import { useSettingsStore } from './settings-store';
 import { resolveMaxParallelTasks } from '../../shared/constants/task';
 import { withYourStepDone } from '../../shared/utils/your-steps';
+import { withFocusSession } from '../../shared/utils/focus';
 
 /** Maximum log entries stored per task to prevent renderer OOM */
 export const MAX_LOG_ENTRIES = 5000;
@@ -987,6 +988,51 @@ export async function setYourStepDone(taskId: string, text: string, done: boolea
   };
   try {
     const result = await window.electronAPI.updateTask(taskId, { metadata: { yourStepsDone } });
+    if (result.success) return true;
+    undo();
+    return false;
+  } catch {
+    undo();
+    return false;
+  }
+}
+
+/**
+ * Log a focus session on a task. The store changes right away; the task's sessions are then
+ * saved in its metadata, and the session is taken back out when that fails. A task that isn't
+ * in the store (the window moved to another project during the session) gets the session
+ * appended to the sessions it has on disk.
+ */
+export async function logFocusSession(taskId: string, projectId: string, session: FocusSession): Promise<boolean> {
+  const store = useTaskStore.getState();
+  const task = store.tasks.find((t) => t.id === taskId && t.projectId === projectId);
+
+  let focusSessions: FocusSession[];
+  let undo = () => {};
+  if (task) {
+    const previous = task.metadata?.focusSessions;
+    focusSessions = withFocusSession(task, session);
+    store.updateTask(taskId, { metadata: { ...task.metadata, focusSessions } });
+    undo = () => {
+      // Only when no later change replaced this one
+      const current = useTaskStore.getState().tasks.find((t) => t.id === taskId);
+      if (current?.metadata?.focusSessions === focusSessions) {
+        useTaskStore.getState().updateTask(taskId, { metadata: { ...current.metadata, focusSessions: previous } });
+      }
+    };
+  } else {
+    try {
+      const result = await window.electronAPI.getTasks(projectId);
+      const stored = result.success ? result.data?.find((t) => t.id === taskId) : undefined;
+      if (!stored) return false;
+      focusSessions = withFocusSession(stored, session);
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    const result = await window.electronAPI.updateTask(taskId, { metadata: { focusSessions } });
     if (result.success) return true;
     undo();
     return false;

@@ -26,7 +26,8 @@ import {
   GitPullRequestCreate,
   GitMerge,
   Play,
-  RotateCcw
+  RotateCcw,
+  Timer
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
@@ -52,6 +53,8 @@ import { PreviousRuns } from './PreviousRuns';
 import { isTaskSessionActive } from '../../../shared/utils/claude-run';
 import { TaskAttachments } from './TaskAttachments';
 import { YourSteps } from './YourSteps';
+import { FocusSessionsSummary } from './FocusSessionsSummary';
+import { useFocusStore } from '../../stores/focus-store';
 import { QAFeedbackSection } from './task-review/QAFeedbackSection';
 import { CreatePRDialog } from './task-review/CreatePRDialog';
 import { MergePRDialog } from './task-review/MergePRDialog';
@@ -126,6 +129,13 @@ function TaskDetailModalContent({ open, task, onOpenChange }: { open: boolean; t
       const result = await startTaskOrQueue(task.id);
       if (!result.success) setActionError(result.error || t('tasks:wizard.errors.startFailed'));
     }
+  };
+
+  // Focus mode on this task: the details close for the full-screen timer (a timer that is
+  // already running is shown as it is)
+  const handleFocus = () => {
+    onOpenChange(false);
+    useFocusStore.getState().openFocus(task.id);
   };
 
   // Retry starts the task over: worktree changes and the previous run are discarded
@@ -357,6 +367,9 @@ function TaskDetailModalContent({ open, task, onOpenChange }: { open: boolean; t
                       {/* Steps the run left for the user, first thing a reviewer sees (only when there are any) */}
                       <YourSteps task={task} />
 
+                      {/* The focus sessions logged on the task (only when there are any) */}
+                      <FocusSessionsSummary task={task} />
+
                       {/* Metadata */}
                       <TaskMetadata
                         task={task}
@@ -522,6 +535,12 @@ function TaskDetailModalContent({ open, task, onOpenChange }: { open: boolean; t
                     <RotateCcw className="h-4 w-4" strokeWidth={DIALOG_CLOSE_ICON_STROKE} />
                   )}
                   {t('tasks:actions.retry')}
+                </Button>
+              )}
+              {!task.metadata?.archivedAt && (
+                <Button variant="ghost" size="sm" className="gap-1.5" onClick={handleFocus}>
+                  <Timer className="h-4 w-4" strokeWidth={DIALOG_CLOSE_ICON_STROKE} />
+                  {t('tasks:focus.detail.button')}
                 </Button>
               )}
               <Button

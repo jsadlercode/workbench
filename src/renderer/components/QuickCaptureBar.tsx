@@ -2,8 +2,8 @@
  * Quick capture: one line at the top of the board that drops a task into the Backlog without the
  * task dialog. The typed text is the description (and the title when it's short, see
  * captureTitle) and the When choice its planned week; base branch and connectors get the defaults
- * the dialog gives when its fields are left as they are (task-form/new-task-metadata.ts), and
- * triage picks model and effort when the task runs.
+ * the dialog gives when its fields are left as they are (useQuickCapture), and triage picks model
+ * and effort when the task runs.
  *
  * Enter adds the task and keeps the focus in the field for the next one; Esc leaves the field.
  * N focuses it from anywhere on the board, except while typing in a field or with a dialog open.
@@ -15,27 +15,12 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { SegmentedControl } from './settings/SettingsRow';
 import { cn } from '../lib/utils';
-import { useTaskGitOptions } from './task-form/TaskGitOptions';
-import { newTaskMetadata } from './task-form/new-task-metadata';
-import { createTask, useTaskStore } from '../stores/task-store';
-import { useSettingsStore } from '../stores/settings-store';
+import { useQuickCapture } from '../hooks/useQuickCapture';
 import { CAPTURE_CHOICES, useQuickCaptureStore, type CaptureWhen } from '../stores/quick-capture-store';
-import { getDefaultMcpConnectorIds } from '../../shared/utils/mcp-connectors';
 import { plannedForChoice } from '../../shared/utils/task-planning';
 
 /** The key that focuses the field from the board */
 export const QUICK_CAPTURE_SHORTCUT = 'n';
-
-/**
- * Longest capture used as its own title. A short capture already reads like a title, and using it
- * skips the Claude Code call that generates one, which takes seconds per add; a longer one gets a
- * generated title (an empty title asks the create handler for one).
- */
-const MAX_TITLE_LENGTH = 80;
-
-export function captureTitle(description: string): string {
-  return description.length <= MAX_TITLE_LENGTH ? description : '';
-}
 
 /** How long "Added to Backlog" stays */
 const CONFIRMATION_MS = 2500;
@@ -64,9 +49,7 @@ interface QuickCaptureBarProps {
 
 export function QuickCaptureBar({ projectId, className }: QuickCaptureBarProps) {
   const { t } = useTranslation(['tasks', 'common']);
-  const mcpConnectorSettings = useSettingsStore((state) => state.settings.mcpConnectors);
-  // The project's default branch and push setting, as the task dialog reads them
-  const gitOptions = useTaskGitOptions(projectId);
+  const capture = useQuickCapture(projectId);
   const when = useQuickCaptureStore((state) => state.when);
   const setWhen = useQuickCaptureStore((state) => state.setWhen);
 
@@ -108,24 +91,6 @@ export function QuickCaptureBar({ projectId, className }: QuickCaptureBarProps) 
   );
 
   const description = text.trim();
-
-  /**
-   * Adds a Backlog task from a trimmed description, planned for `plannedFor` (unset leaves it
-   * unplanned). Resolves to why it failed, or null.
-   */
-  const capture = async (taskDescription: string, plannedFor?: string): Promise<string | null> => {
-    try {
-      // The dialog's defaults for fields it leaves as they are
-      const metadata = newTaskMetadata(
-        { mcpConnectors: getDefaultMcpConnectorIds(mcpConnectorSettings), planning: { plannedFor } },
-        gitOptions
-      );
-      const task = await createTask(projectId, captureTitle(taskDescription), taskDescription, metadata);
-      return task ? null : useTaskStore.getState().error || t('tasks:wizard.errors.createFailed');
-    } catch (err) {
-      return err instanceof Error ? err.message : t('common:errors.unknownError');
-    }
-  };
 
   /** Back to the field for the next task, unless the user has moved on to something else */
   const refocus = () => {

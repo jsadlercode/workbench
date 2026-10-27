@@ -160,6 +160,24 @@ export interface TaskDraft {
 export type { ThinkingLevel };
 /** Model identifier — Claude shorthands or concrete model IDs from any provider */
 export type ModelType = string;
+
+/** How a focus session went, as the user picked it at the end */
+export type FocusOutcome = 'finished' | 'progress' | 'stuck';
+
+/** One focus timer session on a task (focus mode) */
+export interface FocusSession {
+  /** ISO time the timer was started */
+  startedAt: string;
+  /** ISO time the session ended (time ran out, or Stop and log) */
+  endedAt: string;
+  /** Time actually focused: from start to end, without the pauses */
+  focusedSeconds: number;
+  /** The session's length, with the minutes added by +5 min */
+  plannedMinutes: number;
+  outcome: FocusOutcome;
+  note?: string;
+}
+
 export interface TaskMetadata {
   // The description the user entered (shown on the task card)
   userDescription?: string;
@@ -214,6 +232,9 @@ export interface TaskMetadata {
   deadline?: string;  // `YYYY-MM-DD`
   hardDeadline?: boolean;  // A committed deadline, as opposed to a target date
   flagged?: boolean;
+
+  // Focus sessions the user logged on the task (src/shared/utils/focus.ts), oldest first
+  focusSessions?: FocusSession[];
 
   // Archive status
   archivedAt?: string;  // ISO date when task was archived

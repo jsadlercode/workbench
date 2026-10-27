@@ -8,6 +8,8 @@ import type { Task } from '../../../shared/types';
 
 interface YourStepsProps {
   task: Task;
+  /** Leaves out the line under the title (focus mode keeps the screen quiet) */
+  hideDescription?: boolean;
 }
 
 /**
@@ -15,7 +17,7 @@ interface YourStepsProps {
  * device), as a checklist. Ticking a step saves it with the task. Nothing is shown when the run
  * left no steps.
  */
-export function YourSteps({ task }: YourStepsProps) {
+export function YourSteps({ task, hideDescription = false }: YourStepsProps) {
   const { t } = useTranslation('tasks');
   const [saveFailed, setSaveFailed] = useState(false);
   const { steps, open, total } = getYourSteps(task);
@@ -29,13 +31,13 @@ export function YourSteps({ task }: YourStepsProps) {
 
   return (
     <div>
-      <div className="mb-1 flex items-baseline justify-between gap-4">
+      <div className={cn('flex items-baseline justify-between gap-4', hideDescription ? 'mb-2' : 'mb-1')}>
         <h3 className="text-sm text-foreground">{t('yourSteps.title')}</h3>
         <span className="shrink-0 text-xs tabular-nums text-(--nav-label-color)">
           {t('yourSteps.progress', { done: total - open, total })}
         </span>
       </div>
-      <p className="mb-3 text-sm text-(--nav-label-color)">{t('yourSteps.description')}</p>
+      {!hideDescription && <p className="mb-3 text-sm text-(--nav-label-color)">{t('yourSteps.description')}</p>}
 
       <ul className="space-y-0.5 rounded-xl bg-segment-track p-1.5">
         {steps.map((step) => (

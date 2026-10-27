@@ -16,11 +16,19 @@
   "actions": {
     "settings": "Settings",
     "newTask": "New Task",
+    "focus": "Focus",
     "collapseSidebar": "Collapse Sidebar",
     "expandSidebar": "Expand Sidebar"
   },
   "tooltips": {
     "settings": "Application Settings"
+  },
+  "focus": {
+    "paused": "Paused",
+    "timeUp": "Time's up",
+    "timeLeft": "{{time}} left",
+    "rowLabel": "Focus, {{status}}",
+    "rowTooltip": "Focus · {{status}}"
   },
   "messages": {
     "initializeToCreateTasks": "Initialize Workbench to create tasks"

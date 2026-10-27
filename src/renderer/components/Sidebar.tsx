@@ -33,6 +33,7 @@ import { AddProjectModal } from './AddProjectModal';
 import { GitSetupModal } from './GitSetupModal';
 
 import { UsageIndicator } from './UsageIndicator';
+import { FocusSidebarRow } from './focus/FocusSidebarRow';
 import type { Project, GitStatus } from '../../shared/types';
 
 export type SidebarView = 'projects' | 'kanban' | 'terminals' | 'insights' | 'memory';
@@ -282,6 +283,9 @@ export function Sidebar({
               {t('messages.initializeToCreateTasks')}
             </p>
           )}
+
+          {/* Focus mode: a timer on one task, with the time left while it runs */}
+          <FocusSidebarRow className={rowClass()} collapsed={isCollapsed} disabled={!selectedProjectId} />
         </div>
 
         {/* Navigation */}

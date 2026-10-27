@@ -366,6 +366,69 @@
     "cardLeft_one": "{{open}} of {{count}} step left for you",
     "cardLeft_other": "{{open}} of {{count}} steps left for you"
   },
+  "focus": {
+    "title": "Focus",
+    "hide": "Hide",
+    "hideHint": "The timer keeps running",
+    "length": "Length",
+    "minutes": "{{count}} min",
+    "picker": {
+      "title": "What do you want to focus on?",
+      "description": "Pick a task and a length. Stray thoughts can wait in the Backlog",
+      "tasks": "Tasks to focus on",
+      "selected": "Selected task",
+      "needsYou": "Needs you",
+      "upNext": "Up next",
+      "stepsLeft_one": "{{count}} step left for you",
+      "stepsLeft_other": "{{count}} steps left for you",
+      "inReview": "Waiting in Human Review",
+      "start": "Start focus",
+      "empty": "Nothing needs you right now",
+      "emptyHint": "You can start focus from any task's details",
+      "logged": "Session logged"
+    },
+    "running": {
+      "of": "of {{count}} min",
+      "paused": "Paused",
+      "timeLeft": "{{time}} left",
+      "pause": "Pause",
+      "resume": "Resume",
+      "extend": "+5 min",
+      "extendLabel": "Add 5 minutes",
+      "stop": "Stop and log"
+    },
+    "park": {
+      "label": "Park a stray thought",
+      "placeholder": "Park a stray thought",
+      "hint": "It goes to the Backlog, so you can stay on this",
+      "add": "Park",
+      "added": "Added to Backlog",
+      "failed": "Couldn't park it: {{error}}"
+    },
+    "ended": {
+      "title": "How did that go?",
+      "focused": "You focused for {{duration}} on {{title}}",
+      "note": "Note",
+      "notePlaceholder": "Add a note (optional)",
+      "finished": "Finished it",
+      "progress": "Made progress",
+      "stuck": "Got stuck",
+      "stuckHint": "Opens the task so you can see what's in the way",
+      "dontLog": "Don't log",
+      "saveFailed": "Couldn't log the session. Try again"
+    },
+    "detail": {
+      "button": "Focus",
+      "summary_one": "Focus: {{count}} session · {{duration}}",
+      "summary_other": "Focus: {{count}} sessions · {{duration}}"
+    },
+    "duration": {
+      "underMinute": "under 1 min",
+      "minutes": "{{minutes}} min",
+      "hours": "{{hours}} h",
+      "hoursMinutes": "{{hours}} h {{minutes}} min"
+    }
+  },
   "previousRuns": {
     "title": "Previous runs",
     "description": "Execution history of the previous task runs"
