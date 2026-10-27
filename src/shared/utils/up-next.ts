@@ -3,10 +3,12 @@
  * The board's Up next bar shows the top ones and queues one in a click.
  *
  * A pure function of the tasks and `now` (local time), built on the planning helpers in
- * `task-planning.ts`: the planned week, the deadline and the flag.
+ * `task-planning.ts`: the planned week, the deadline and the flag, and pushed back while the task
+ * is waiting on someone or something (`waiting.ts`).
  */
 import type { Task } from '../types/task';
 import { deadlineState, planHorizon, type DeadlineTone } from './task-planning';
+import { isWaiting } from './waiting';
 
 /** Points each rule adds to a task's score */
 export const UP_NEXT_SCORES = {
@@ -20,7 +22,9 @@ export const UP_NEXT_SCORES = {
   dueLaterHard: 20,
   flagged: 30,
   thisWeek: 20,
-  nextWeek: 4
+  nextWeek: 4,
+  /** Waiting on someone or something: the user can't move it on yet */
+  waiting: -45
 } as const;
 
 /** Why a task is suggested; the UI turns each into text (`tasks:upNext.reasons.*`) */
@@ -32,7 +36,8 @@ export type UpNextReasonKey =
   | 'due_in_days'
   | 'flagged'
   | 'this_week'
-  | 'next_week';
+  | 'next_week'
+  | 'waiting';
 
 /**
  * A reason's color. `urgent` and `soon` are the deadline tones of `task-planning.ts` (red and
@@ -96,6 +101,13 @@ function scoreTask(task: UpNextTask, now: Date): { score: number; reasons: UpNex
   } else if (horizon === 'next_week') {
     score += UP_NEXT_SCORES.nextWeek;
     if (reasons.length === 0) reasons.push({ key: 'next_week', tone: 'neutral' });
+  }
+
+  // A task waiting on someone or something subtracts its penalty, so one with nothing else going
+  // for it drops out at the 0-score filter below; one that still shows says it is waiting
+  if (isWaiting(task)) {
+    score += UP_NEXT_SCORES.waiting;
+    reasons.push({ key: 'waiting', tone: 'neutral' });
   }
 
   return { score, reasons };

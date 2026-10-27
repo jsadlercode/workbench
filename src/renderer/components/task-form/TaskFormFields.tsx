@@ -40,6 +40,10 @@ interface TaskFormFieldsProps {
   // Planning (week, deadline, flag); the section shows when a change handler is given
   planning?: PlanningFormValue;
   onPlanningChange?: (value: PlanningFormValue) => void;
+  // Who or what the task is waiting on (in the Planning section); the field shows when a change
+  // handler is given
+  waitingOn?: string;
+  onWaitingOnChange?: (value: string) => void;
 
   // MCP connectors for this task (ids); the rows show when a change handler is given
   mcpConnectors?: string[];
@@ -67,6 +71,8 @@ export function TaskFormFields({
   onImagesChange,
   planning,
   onPlanningChange,
+  waitingOn,
+  onWaitingOnChange,
   mcpConnectors = [],
   onMcpConnectorsChange,
   disabled = false,
@@ -222,13 +228,15 @@ export function TaskFormFields({
           )}
         </div>
 
-        {/* The week, deadline and flag the user tracks the task by */}
+        {/* The week, deadline and flag the user tracks the task by, and who or what it waits on */}
         {planning && onPlanningChange && (
           <TaskPlanningSection
             value={planning}
             onChange={onPlanningChange}
             disabled={disabled}
             idPrefix={idPrefix}
+            waitingOn={waitingOn}
+            onWaitingOnChange={onWaitingOnChange}
           />
         )}
 

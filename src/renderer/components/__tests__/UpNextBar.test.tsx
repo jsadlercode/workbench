@@ -115,6 +115,17 @@ describe('UpNextBar', () => {
     expect(items()).toHaveLength(3);
   });
 
+  it('says a suggested task is waiting on someone, in the neutral tone', () => {
+    renderBoard([
+      task('waiting', { deadline: '2026-10-20', hardDeadline: true, waitingOn: 'Sam', waitingSince: '2026-10-26T09:00:00.000Z' }),
+      // Flagged and waiting: 30 - 45, not suggested
+      task('waiting-flagged', { flagged: true, waitingOn: 'Alex', waitingSince: '2026-10-26T09:00:00.000Z' })
+    ]);
+    expect(items()).toHaveLength(1);
+    const reason = within(items()[0]).getByText('upNext.reasons.waiting');
+    expect(reason).toHaveClass('text-(--nav-label-color)');
+  });
+
   it('has no Show all toggle with 3 suggestions or fewer', () => {
     renderBoard(flaggedTasks(3));
     expect(items()).toHaveLength(3);

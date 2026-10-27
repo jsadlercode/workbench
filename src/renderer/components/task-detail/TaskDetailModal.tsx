@@ -54,6 +54,7 @@ import { isTaskSessionActive } from '../../../shared/utils/claude-run';
 import { TaskAttachments } from './TaskAttachments';
 import { YourSteps } from './YourSteps';
 import { FocusSessionsSummary } from './FocusSessionsSummary';
+import { WaitingChip } from '../WaitingChip';
 import { useFocusStore } from '../../stores/focus-store';
 import { QAFeedbackSection } from './task-review/QAFeedbackSection';
 import { CreatePRDialog } from './task-review/CreatePRDialog';
@@ -325,6 +326,8 @@ function TaskDetailModalContent({ open, task, onOpenChange }: { open: boolean; t
                           {t(TASK_STATUS_LABELS[task.status])}
                         </Badge>
                       )}
+                      {/* Who or what the task waits on, when it waits */}
+                      <WaitingChip task={task} muted={task.status === 'done'} className="max-w-64" />
                     </div>
                   </DialogPrimitive.Description>
                   {window.DEBUG && (

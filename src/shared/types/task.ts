@@ -233,6 +233,11 @@ export interface TaskMetadata {
   hardDeadline?: boolean;  // A committed deadline, as opposed to a target date
   flagged?: boolean;
 
+  // Waiting on someone or something (src/shared/utils/waiting.ts): who or what, e.g. "House Labs
+  // reply" (non-empty means waiting), and the ISO time the task started waiting
+  waitingOn?: string;
+  waitingSince?: string;
+
   // Focus sessions the user logged on the task (src/shared/utils/focus.ts), oldest first
   focusSessions?: FocusSession[];
 

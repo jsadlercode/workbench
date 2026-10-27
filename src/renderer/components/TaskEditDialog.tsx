@@ -1,7 +1,7 @@
 /**
  * TaskEditDialog - Dialog for editing task details
  *
- * Edits the task's description, reference images, planning (week, deadline, flag), MCP connectors
+ * Edits the task's description, reference images, planning (week, deadline, flag, waiting on), MCP connectors
  * and git options - the base branch and whether its branch is pushed (the title is kept). Model,
  * effort and whether to plan are decided by the Claude Code triage run when the task starts.
  *
@@ -26,6 +26,7 @@ import type { Task, TaskMetadata, ImageAttachment } from '../../shared/types';
 import { useSettingsStore } from '../stores/settings-store';
 import { getDefaultMcpConnectorIds } from '../../shared/utils/mcp-connectors';
 import { planningFormValue, planningMetadata, type PlanningFormValue, type PlanningMetadataUpdate } from '../../shared/utils/task-planning';
+import { isWaiting, waitingChanges } from '../../shared/utils/waiting';
 import { useToday } from '../hooks/useToday';
 
 /**
@@ -64,6 +65,9 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
   // Planning: the task's week (none selected for a past week or one after next week), deadline, flag
   const today = useToday();
   const [planning, setPlanning] = useState<PlanningFormValue>(() => planningFormValue(task.metadata, today));
+  // Who or what the task waits on (empty when it isn't waiting)
+  const savedWaitingOn = isWaiting(task) ? task.metadata?.waitingOn ?? '' : '';
+  const [waitingOn, setWaitingOn] = useState(savedWaitingOn);
 
   // MCP connectors: the task's own choice, or the Connectors defaults for tasks created before
   // connectors were per task. Saving changes only this task
@@ -87,6 +91,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
       setBaseBranch(task.metadata?.baseBranch || PROJECT_DEFAULT_BRANCH);
       setPushNewBranches(task.metadata?.pushNewBranches ?? gitOptions.projectPushNewBranches);
       setPlanning(planningFormValue(task.metadata, new Date()));
+      setWaitingOn(isWaiting(task) ? task.metadata?.waitingOn ?? '' : '');
       setError(null);
     }
   }, [open, task, settings.mcpConnectors, gitOptions.projectPushNewBranches]);
@@ -104,8 +109,12 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
     const savedPlanning = planningMetadata(planningFormValue(task.metadata, today), today);
     const planningChanged = (Object.keys(planningUpdates) as (keyof PlanningMetadataUpdate)[])
       .some((key) => planningUpdates[key] !== savedPlanning[key]);
+    // Both fields: the start time stays while the task keeps waiting, and empty text clears both
+    const waitingUpdates = waitingChanges(task.metadata, waitingOn, new Date());
+    const waitingChanged = waitingOn.trim() !== savedWaitingOn.trim();
     const hasChanges =
       planningChanged ||
+      waitingChanged ||
       trimmedDescription !== task.description ||
       [...mcpConnectors].sort().join(',') !== [...taskConnectors].sort().join(',') ||
       baseBranch !== taskBaseBranch ||
@@ -141,7 +150,9 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
       // Unset again when it matches the project's own setting, so the task follows it
       pushNewBranches: pushNewBranches === gitOptions.projectPushNewBranches ? undefined : pushNewBranches,
       // Every planning field; a cleared one is removed from the task
-      ...planningUpdates
+      ...planningUpdates,
+      // Saved only when the text changed, so an unchanged task keeps its fields as they are
+      ...(waitingChanged ? waitingUpdates : {})
     };
 
     const success = await persistUpdateTask(task.id, {
@@ -195,6 +206,8 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
         onImagesChange={setImages}
         planning={planning}
         onPlanningChange={setPlanning}
+        waitingOn={waitingOn}
+        onWaitingOnChange={setWaitingOn}
         mcpConnectors={mcpConnectors}
         onMcpConnectorsChange={setMcpConnectors}
         disabled={isSaving}

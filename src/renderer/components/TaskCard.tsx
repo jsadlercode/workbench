@@ -19,11 +19,14 @@ import {
   JSON_ERROR_PREFIX,
   JSON_ERROR_TITLE_SUFFIX
 } from '../../shared/constants';
-import { stopTask, checkTaskRunning, isIncompleteHumanReview, archiveTasks, hasRecentActivity, startTaskOrQueue, taskHasErrors, retryTask, setTaskPlanning, type TaskPlanningChanges } from '../stores/task-store';
+import { stopTask, checkTaskRunning, isIncompleteHumanReview, archiveTasks, hasRecentActivity, startTaskOrQueue, taskHasErrors, retryTask, setTaskPlanning, setTaskWaiting, type TaskPlanningChanges } from '../stores/task-store';
 import { getYourSteps } from '../../shared/utils/your-steps';
 import { deadlineState, plannedForChoice, type DeadlineTone, type PlanChoice } from '../../shared/utils/task-planning';
+import { isWaiting } from '../../shared/utils/waiting';
 import { useToday } from '../hooks/useToday';
 import { usePlanningLabels } from '../hooks/usePlanningLabels';
+import { WaitingChip } from './WaitingChip';
+import { WaitingOnPopover } from './WaitingOnPopover';
 import type { Task, TaskStatus } from '../../shared/types';
 
 // Stuck detection interval (ms). XState handles normal process exits (PROCESS_EXITED); this
@@ -82,7 +85,10 @@ function taskCardPropsAreEqual(prevProps: TaskCardProps, nextProps: TaskCardProp
     prevTask.metadata?.plannedFor === nextTask.metadata?.plannedFor &&
     prevTask.metadata?.deadline === nextTask.metadata?.deadline &&
     prevTask.metadata?.hardDeadline === nextTask.metadata?.hardDeadline &&
-    prevTask.metadata?.flagged === nextTask.metadata?.flagged
+    prevTask.metadata?.flagged === nextTask.metadata?.flagged &&
+    // Waiting on: the chip and the menu's items
+    prevTask.metadata?.waitingOn === nextTask.metadata?.waitingOn &&
+    prevTask.metadata?.waitingSince === nextTask.metadata?.waitingSince
   );
 
   // Only log when actually re-rendering (reduces noise significantly)
@@ -112,6 +118,10 @@ export const TaskCard = memo(function TaskCard({
   // Why starting or retrying from the card failed, shown under the description
   const [actionError, setActionError] = useState<string | null>(null);
   const stuckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // The "Waiting on…" editor, opened once the menu has closed (so the menu's focus return
+  // doesn't close it)
+  const [waitingEditorOpen, setWaitingEditorOpen] = useState(false);
+  const openWaitingEditorRef = useRef(false);
   const today = useToday();
   const planningLabels = usePlanningLabels();
 
@@ -250,6 +260,12 @@ export const TaskCard = memo(function TaskCard({
     setActionError(saved ? null : t('planning.saveFailed'));
   };
 
+  // Waiting on / Stop waiting: shown right away, undone with a message when saving fails
+  const handleWaitingChange = async (waitingOn: string) => {
+    const saved = await setTaskWaiting(task.id, waitingOn);
+    setActionError(saved ? null : t('waiting.saveFailed'));
+  };
+
   const handleViewPR = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (task.metadata?.prUrl && window.electronAPI?.openExternal) {
@@ -261,6 +277,7 @@ export const TaskCard = memo(function TaskCard({
   // Steps the run left for the user that aren't ticked yet
   const yourSteps = getYourSteps(task);
   const isFlagged = task.metadata?.flagged === true;
+  const waiting = isWaiting(task);
   // The deadline, in a neutral tone once the task is done
   const deadline = deadlineState(task, today);
   const deadlineTone = task.status === 'done' ? null : deadline?.tone ?? null;
@@ -315,9 +332,9 @@ export const TaskCard = memo(function TaskCard({
             {actionError}
           </p>
         )}
-        {/* The deadline, then the steps left for the user, in the dialog's status label look
-            (color text and border, 10% tint) */}
-        {(deadline || yourSteps.open > 0) && (
+        {/* The deadline, what the task waits on, then the steps left for the user, in the
+            dialog's status label look (color text and border, 10% tint) */}
+        {(deadline || waiting || yourSteps.open > 0) && (
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {deadline && (
               <Badge variant="outline" className={cn('gap-1.5 text-xs', DEADLINE_TONE_CLASS[deadlineTone ?? 'none'])}>
@@ -325,6 +342,7 @@ export const TaskCard = memo(function TaskCard({
                 {planningLabels.deadline(deadline, today)}
               </Badge>
             )}
+            <WaitingChip task={task} muted={task.status === 'done'} />
             {yourSteps.open > 0 && (
               <Badge
                 variant="outline"
@@ -409,45 +427,71 @@ export const TaskCard = memo(function TaskCard({
               </Button>
             )}
 
-            {/* Task menu: Move to (also for keyboard users), Plan for and Flag */}
+            {/* Task menu: Move to (also for keyboard users), Plan for, Flag and Waiting on. The
+                "Waiting on…" editor opens next to its button */}
             {onStatusChange && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={ICON_BUTTON_CLASS}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label={t('actions.taskActions')}
-                  >
-                    <MoreVertical className="h-4 w-4" strokeWidth={1.75} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  {statusMenuItems && (
-                    <>
-                      <DropdownMenuLabel>{t('actions.moveTo')}</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {statusMenuItems}
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  <DropdownMenuLabel>{t('planning.menu.planFor')}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {PLAN_MENU_CHOICES.map((choice) => (
-                    <DropdownMenuItem
-                      key={choice}
-                      onClick={() => void handlePlanningChange({ plannedFor: plannedForChoice(choice, today) })}
+              <WaitingOnPopover
+                open={waitingEditorOpen}
+                onOpenChange={setWaitingEditorOpen}
+                value={waiting ? task.metadata?.waitingOn ?? '' : ''}
+                onSave={(waitingOn) => void handleWaitingChange(waitingOn)}
+              >
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={ICON_BUTTON_CLASS}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={t('actions.taskActions')}
                     >
-                      {t(`planning.choices.${choice}`)}
+                      <MoreVertical className="h-4 w-4" strokeWidth={1.75} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    onClick={(e) => e.stopPropagation()}
+                    onCloseAutoFocus={(e) => {
+                      if (!openWaitingEditorRef.current) return;
+                      openWaitingEditorRef.current = false;
+                      e.preventDefault();
+                      setWaitingEditorOpen(true);
+                    }}
+                  >
+                    {statusMenuItems && (
+                      <>
+                        <DropdownMenuLabel>{t('actions.moveTo')}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {statusMenuItems}
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuLabel>{t('planning.menu.planFor')}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {PLAN_MENU_CHOICES.map((choice) => (
+                      <DropdownMenuItem
+                        key={choice}
+                        onClick={() => void handlePlanningChange({ plannedFor: plannedForChoice(choice, today) })}
+                      >
+                        {t(`planning.choices.${choice}`)}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => void handlePlanningChange({ flagged: isFlagged ? undefined : true })}>
+                      {isFlagged ? t('planning.menu.removeFlag') : t('planning.menu.flag')}
                     </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => void handlePlanningChange({ flagged: isFlagged ? undefined : true })}>
-                    {isFlagged ? t('planning.menu.removeFlag') : t('planning.menu.flag')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => { openWaitingEditorRef.current = true; }}>
+                      {t('waiting.menu.waitingOn')}
+                    </DropdownMenuItem>
+                    {waiting && (
+                      <DropdownMenuItem onClick={() => void handleWaitingChange('')}>
+                        {t('waiting.menu.stopWaiting')}
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </WaitingOnPopover>
             )}
           </div>
         </div>

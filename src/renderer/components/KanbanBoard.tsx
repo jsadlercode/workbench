@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { TaskCard } from './TaskCard';
 import { SortableTaskCard } from './SortableTaskCard';
 import { UpNextBar } from './UpNextBar';
+import { WaitingBar } from './WaitingBar';
 import { QuickCaptureBar } from './QuickCaptureBar';
 import { TASK_STATUS_COLUMNS, TASK_STATUS_LABELS } from '../../shared/constants';
 import { sortColumnTasks } from '../../shared/utils/task-column-order';
@@ -842,6 +843,8 @@ export function KanbanBoard({ tasks, projectId: boardProjectId, onTaskClick, onN
         onTaskClick={onTaskClick}
         onQueue={(task) => moveTask(task.id, 'queue', task)}
       />
+      {/* Waiting on: tasks waiting on someone or something, longest first (hidden when none waits) */}
+      <WaitingBar tasks={tasks} onTaskClick={onTaskClick} />
       {/* Kanban columns */}
       <DndContext
         sensors={sensors}

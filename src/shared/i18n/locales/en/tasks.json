@@ -348,8 +348,44 @@
       "due_in_days_other": "Due in {{count}} days",
       "flagged": "Flagged",
       "this_week": "This week",
-      "next_week": "Next week"
+      "next_week": "Next week",
+      "waiting": "Waiting"
     }
+  },
+  "waiting": {
+    "chip": "Waiting · {{waitingOn}}",
+    "chipTitle": "Waiting on {{waitingOn}}",
+    "menu": {
+      "waitingOn": "Waiting on…",
+      "stopWaiting": "Stop waiting"
+    },
+    "editor": {
+      "label": "Waiting on",
+      "placeholder": "Who or what, e.g. House Labs reply",
+      "hint": "Enter to save, Esc to cancel",
+      "save": "Save"
+    },
+    "form": {
+      "label": "Waiting on",
+      "description": "Someone or something it can't move on without",
+      "placeholder": "Who or what, e.g. House Labs reply"
+    },
+    "bar": {
+      "title": "Waiting on",
+      "hint": "Tasks waiting on someone or something, longest first",
+      "count_one": "{{count}} task",
+      "count_other": "{{count}} tasks",
+      "showAll": "Show all {{total}}",
+      "showLess": "Show less",
+      "collapse": "Collapse Waiting on",
+      "expand": "Expand Waiting on",
+      "forDays_one": "for {{count}} day",
+      "forDays_other": "for {{count}} days",
+      "sinceToday": "since today",
+      "stopWaiting": "Stop waiting",
+      "stopWaitingAriaLabel": "Stop waiting on {{waitingOn}} for {{title}}"
+    },
+    "saveFailed": "Couldn't save the change. Try again"
   },
   "capture": {
     "title": "Quick capture",

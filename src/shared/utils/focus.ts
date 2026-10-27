@@ -9,6 +9,7 @@ import type { FocusOutcome, FocusSession, Task } from '../types/task';
 import { getTaskColumn } from '../constants/task';
 import { getYourSteps } from './your-steps';
 import { suggestUpNext } from './up-next';
+import { isWaiting } from './waiting';
 
 /** The lengths the picker offers, in minutes */
 export const FOCUS_LENGTHS = [15, 25, 30, 45, 60] as const;
@@ -135,7 +136,10 @@ export function focusSummary(task: FocusSessionsTask): FocusSummary {
 type FocusCandidateTask = Pick<Task, 'id' | 'status' | 'metadata' | 'claudeRun'>;
 
 export interface FocusCandidates<T> {
-  /** Tasks with open "your steps", then the other tasks waiting in Human Review */
+  /**
+   * Tasks with open "your steps", then the other tasks waiting in Human Review. Tasks waiting on
+   * someone or something are left out: the user can't act on them yet
+   */
   needsYou: T[];
   /** The Up next suggestions not already in `needsYou` */
   upNext: T[];
@@ -143,14 +147,16 @@ export interface FocusCandidates<T> {
 
 /**
  * The tasks the focus picker offers, in two groups. Archived tasks are left out; each task shows
- * once. `tasks` keeps its order within each group (Up next sorts by its own score).
+ * once. `tasks` keeps its order within each group (Up next sorts by its own score, which pushes
+ * waiting tasks back). A waiting task can still be focused on from its details.
  */
 export function focusCandidates<T extends FocusCandidateTask>(tasks: readonly T[], now: Date): FocusCandidates<T> {
   const active = tasks.filter((task) => !task.metadata?.archivedAt);
-  const withSteps = active.filter((task) => getYourSteps(task).open > 0);
+  const actionable = active.filter((task) => !isWaiting(task));
+  const withSteps = actionable.filter((task) => getYourSteps(task).open > 0);
   const stepIds = new Set(withSteps.map((task) => task.id));
   // Human Review's column also holds tasks with an open PR and failed ones
-  const inReview = active.filter(
+  const inReview = actionable.filter(
     (task) => !stepIds.has(task.id) && getTaskColumn(task.status) === 'human_review'
   );
   const needsYou = [...withSteps, ...inReview];

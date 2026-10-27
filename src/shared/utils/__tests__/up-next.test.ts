@@ -110,6 +110,46 @@ describe('suggestUpNext rules', () => {
   });
 });
 
+describe('suggestUpNext waiting', () => {
+  const WAITING: TaskMetadata = { waitingOn: 'House Labs reply', waitingSince: '2026-10-26T09:00:00.000Z' };
+
+  it('subtracts 45 for a waiting task and says so when it still shows', () => {
+    expect(UP_NEXT_SCORES.waiting).toBe(-45);
+    expect(only({ ...WAITING, plannedFor: LAST_WEEK, flagged: true })).toMatchObject({
+      score: 50 + 30 - 45,
+      reasons: [
+        { key: 'carried_over', tone: 'soon' },
+        { key: 'flagged', tone: 'accent' },
+        { key: 'waiting', tone: 'neutral' }
+      ]
+    });
+  });
+
+  it('drops a waiting task with nothing else going for it', () => {
+    expect(only({ ...WAITING, flagged: true })).toBeUndefined();
+    expect(only({ ...WAITING, plannedFor: THIS_WEEK })).toBeUndefined();
+    expect(only(WAITING)).toBeUndefined();
+  });
+
+  it('puts a waiting task below one that is not', () => {
+    const suggestions = suggestUpNext(
+      [
+        task('waiting', { ...WAITING, deadline: '2026-10-20', hardDeadline: true }),
+        task('flagged', { flagged: true })
+      ],
+      NOW
+    );
+    expect(suggestions.map((s) => [s.task.id, s.score])).toEqual([
+      ['flagged', 30],
+      ['waiting', 15]
+    ]);
+  });
+
+  it('ignores blank waiting text', () => {
+    expect(only({ waitingOn: '   ', flagged: true })).toMatchObject({ score: 30, reasons: [{ key: 'flagged' }] });
+  });
+});
+
 describe('suggestUpNext selection', () => {
   it('leaves out tasks scoring 0', () => {
     const suggestions = suggestUpNext(

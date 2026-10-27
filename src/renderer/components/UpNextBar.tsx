@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, CalendarDays, ChevronDown, ChevronUp, Flag, History, ListStart, Loader2, type LucideIcon } from 'lucide-react';
+import { CalendarClock, CalendarDays, ChevronDown, ChevronUp, Flag, History, Hourglass, ListStart, Loader2, type LucideIcon } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -37,7 +37,8 @@ const REASON_ICON: Record<UpNextReasonKey, LucideIcon> = {
   due_in_days: CalendarClock,
   flagged: Flag,
   this_week: CalendarDays,
-  next_week: CalendarDays
+  next_week: CalendarDays,
+  waiting: Hourglass
 };
 
 interface UpNextBarProps {

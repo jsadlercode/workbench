@@ -4,6 +4,7 @@
  */
 import type { ImageAttachment, TaskMetadata } from '../../../shared/types';
 import type { PlanningMetadataUpdate } from '../../../shared/utils/task-planning';
+import type { WaitingChanges } from '../../../shared/utils/waiting';
 import { PROJECT_DEFAULT_BRANCH, type TaskGitOptions } from './TaskGitOptions';
 
 export interface NewTaskFields {
@@ -18,6 +19,8 @@ export interface NewTaskFields {
   pushNewBranches?: boolean;
   /** Planning fields; undefined ones are left out */
   planning?: Partial<PlanningMetadataUpdate>;
+  /** Who or what the task waits on and since when (from `waitingChanges`); undefined ones are left out */
+  waiting?: Partial<WaitingChanges>;
 }
 
 /** The project's git defaults a new task's metadata depends on (from `useTaskGitOptions`) */
@@ -31,7 +34,8 @@ export function newTaskMetadata(fields: NewTaskFields, git: NewTaskGitDefaults):
     baseBranch = PROJECT_DEFAULT_BRANCH,
     useWorktree = true,
     pushNewBranches = git.projectPushNewBranches,
-    planning = {}
+    planning = {},
+    waiting = {}
   } = fields;
 
   const metadata: TaskMetadata = { sourceType: 'manual' };
@@ -50,8 +54,8 @@ export function newTaskMetadata(fields: NewTaskFields, git: NewTaskGitDefaults):
   if (baseBranch !== PROJECT_DEFAULT_BRANCH && git.isLocalBranch(baseBranch)) metadata.useLocalBranch = true;
   if (pushNewBranches !== git.projectPushNewBranches) metadata.pushNewBranches = pushNewBranches;
   metadata.mcpConnectors = mcpConnectors;
-  // Only the planning fields that are set
-  for (const [key, value] of Object.entries(planning)) {
+  // Only the planning and waiting fields that are set
+  for (const [key, value] of Object.entries({ ...planning, ...waiting })) {
     if (value !== undefined) Object.assign(metadata, { [key]: value });
   }
   return metadata;

@@ -7,6 +7,7 @@ import { useSettingsStore } from './settings-store';
 import { resolveMaxParallelTasks } from '../../shared/constants/task';
 import { withYourStepDone } from '../../shared/utils/your-steps';
 import { withFocusSession } from '../../shared/utils/focus';
+import { waitingChanges } from '../../shared/utils/waiting';
 
 /** Maximum log entries stored per task to prevent renderer OOM */
 export const MAX_LOG_ENTRIES = 5000;
@@ -1050,13 +1051,32 @@ export type TaskPlanningChanges = Partial<Pick<TaskMetadata, 'plannedFor' | 'dea
  * the change is then saved in the task's metadata, and undone when that fails.
  */
 export async function setTaskPlanning(taskId: string, changes: TaskPlanningChanges): Promise<boolean> {
+  return saveMetadataChanges(taskId, changes);
+}
+
+/**
+ * Mark a task as waiting on someone or something (`waitingOn`, e.g. "House Labs reply"), change
+ * what it waits on, or stop it waiting with empty text. The start time is kept while it keeps
+ * waiting. Shown right away, then saved, and undone when that fails.
+ */
+export async function setTaskWaiting(taskId: string, waitingOn: string): Promise<boolean> {
+  const task = useTaskStore.getState().tasks.find((t) => t.id === taskId);
+  if (!task) return false;
+  return saveMetadataChanges(taskId, waitingChanges(task.metadata, waitingOn, new Date()));
+}
+
+/**
+ * Change some of a task's metadata fields in the store right away, then save them in the task's
+ * metadata (an undefined value removes the field), undoing the change when that fails
+ */
+async function saveMetadataChanges(taskId: string, changes: Partial<TaskMetadata>): Promise<boolean> {
   const store = useTaskStore.getState();
   const task = store.tasks.find((t) => t.id === taskId);
   if (!task) return false;
 
   const previous = Object.fromEntries(
-    Object.keys(changes).map((key) => [key, task.metadata?.[key as keyof TaskPlanningChanges]])
-  ) as TaskPlanningChanges;
+    Object.keys(changes).map((key) => [key, task.metadata?.[key as keyof TaskMetadata]])
+  ) as Partial<TaskMetadata>;
   const metadata: TaskMetadata = { ...task.metadata, ...changes };
   store.updateTask(taskId, { metadata });
 

@@ -56,6 +56,15 @@ describe('newTaskMetadata', () => {
     });
   });
 
+  it('stores what a new task waits on and since when, and leaves cleared fields out', () => {
+    const waiting = { waitingOn: 'House Labs reply', waitingSince: '2026-10-28T09:00:00.000Z' };
+    expect(newTaskMetadata({ mcpConnectors: [], waiting }, git)).toMatchObject(waiting);
+
+    const notWaiting = newTaskMetadata({ mcpConnectors: [], waiting: { waitingOn: undefined, waitingSince: undefined } }, git);
+    expect(notWaiting).not.toHaveProperty('waitingOn');
+    expect(notWaiting).not.toHaveProperty('waitingSince');
+  });
+
   it('keeps the project default when the project default branch is picked explicitly', () => {
     const metadata = newTaskMetadata({ mcpConnectors: [], baseBranch: PROJECT_DEFAULT_BRANCH, pushNewBranches: false }, git);
     expect(metadata).not.toHaveProperty('useLocalBranch');

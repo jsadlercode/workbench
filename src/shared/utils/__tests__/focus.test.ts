@@ -217,6 +217,24 @@ describe('focusCandidates', () => {
     expect(ids(upNext)).toEqual(['due']);
   });
 
+  it('leaves tasks waiting on someone out of Needs you, and Up next pushes them back', () => {
+    const waiting = { waitingOn: 'House Labs reply', waitingSince: '2026-10-26T09:00:00.000Z' };
+    const tasks = [
+      task('waiting-review', 'human_review', waiting),
+      task('waiting-steps', 'human_review', waiting, ['Send the email']),
+      task('review', 'human_review'),
+      // Flagged (30) minus waiting (45): not suggested
+      task('waiting-flagged', 'backlog', { ...waiting, flagged: true }),
+      // Overdue hard deadline (60) minus waiting (45): still suggested
+      task('waiting-overdue', 'backlog', { ...waiting, deadline: '2026-10-20', hardDeadline: true }),
+      // Blank text is not waiting
+      task('blank-waiting', 'human_review', { waitingOn: '  ' })
+    ];
+    const { needsYou, upNext } = focusCandidates(tasks, NOW);
+    expect(ids(needsYou)).toEqual(['review', 'blank-waiting']);
+    expect(ids(upNext)).toEqual(['waiting-overdue']);
+  });
+
   it('is empty when nothing needs the user and nothing is suggested', () => {
     expect(focusCandidates([task('plain', 'backlog'), task('done', 'done')], NOW)).toEqual({ needsYou: [], upNext: [] });
   });

@@ -22,6 +22,7 @@ import type { ImageAttachment } from '../../shared/types';
 import { useSettingsStore } from '../stores/settings-store';
 import { getDefaultMcpConnectorIds } from '../../shared/utils/mcp-connectors';
 import { EMPTY_PLANNING_FORM, planningMetadata, type PlanningFormValue } from '../../shared/utils/task-planning';
+import { waitingChanges } from '../../shared/utils/waiting';
 
 interface TaskCreationWizardProps {
   projectId: string;
@@ -59,6 +60,8 @@ export function TaskCreationWizard({
 
   // Planning: week, deadline and flag (new tasks start not planned)
   const [planning, setPlanning] = useState<PlanningFormValue>(EMPTY_PLANNING_FORM);
+  // Who or what the task waits on (empty: not waiting)
+  const [waitingOn, setWaitingOn] = useState('');
 
   // MCP connectors start from the Connectors defaults; changes stay with this task
   const defaultConnectors = useMemo(() => getDefaultMcpConnectorIds(settings.mcpConnectors), [settings.mcpConnectors]);
@@ -87,6 +90,7 @@ export function TaskCreationWizard({
         setUseWorktree(true);
         setPushNewBranches(projectPushNewBranches);
         setPlanning(EMPTY_PLANNING_FORM);
+        setWaitingOn('');
         setIsDraftRestored(false);
       }
     }
@@ -123,7 +127,8 @@ export function TaskCreationWizard({
           baseBranch,
           useWorktree,
           pushNewBranches,
-          planning: planningMetadata(planning, new Date())
+          planning: planningMetadata(planning, new Date()),
+          waiting: waitingChanges(undefined, waitingOn, new Date())
         },
         gitOptions
       );
@@ -152,6 +157,7 @@ export function TaskCreationWizard({
     setUseWorktree(true);
     setPushNewBranches(projectPushNewBranches);
     setPlanning(EMPTY_PLANNING_FORM);
+    setWaitingOn('');
     setError(null);
     setIsDraftRestored(false);
   };
@@ -244,6 +250,8 @@ export function TaskCreationWizard({
         onImagesChange={setImages}
         planning={planning}
         onPlanningChange={setPlanning}
+        waitingOn={waitingOn}
+        onWaitingOnChange={setWaitingOn}
         mcpConnectors={mcpConnectors}
         onMcpConnectorsChange={setMcpConnectors}
         disabled={isCreating}

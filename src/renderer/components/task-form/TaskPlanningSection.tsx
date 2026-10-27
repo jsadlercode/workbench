@@ -3,7 +3,8 @@
  *
  * The week the user plans to work on the task, its deadline (a hard one or a target date) and its
  * flag, kept in the task's metadata (src/shared/utils/task-planning.ts). A task planned for a past
- * week, or a week after next week, selects no week and says which week it has.
+ * week, or a week after next week, selects no week and says which week it has. Below them, who or
+ * what the task is waiting on (src/shared/utils/waiting.ts), when a change handler is given.
  */
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
@@ -21,13 +22,18 @@ interface TaskPlanningSectionProps {
   disabled?: boolean;
   /** Keeps the field ids apart when both dialogs are mounted */
   idPrefix?: string;
+  /** Who or what the task is waiting on; empty when it isn't waiting */
+  waitingOn?: string;
+  onWaitingOnChange?: (value: string) => void;
 }
 
 export function TaskPlanningSection({
   value,
   onChange,
   disabled = false,
-  idPrefix = ''
+  idPrefix = '',
+  waitingOn = '',
+  onWaitingOnChange
 }: TaskPlanningSectionProps) {
   const { t } = useTranslation('tasks');
   const today = useToday();
@@ -111,6 +117,22 @@ export function TaskPlanningSection({
             disabled={disabled}
           />
         </SettingsRow>
+        {onWaitingOnChange && (
+          <SettingsRow
+            label={t('waiting.form.label')}
+            description={t('waiting.form.description')}
+            htmlFor={`${prefix}waiting-on`}
+          >
+            <Input
+              id={`${prefix}waiting-on`}
+              value={waitingOn}
+              onChange={(e) => onWaitingOnChange(e.target.value)}
+              placeholder={t('waiting.form.placeholder')}
+              disabled={disabled}
+              className="h-8 w-64"
+            />
+          </SettingsRow>
+        )}
       </SettingsRows>
     </SettingsSection>
   );
