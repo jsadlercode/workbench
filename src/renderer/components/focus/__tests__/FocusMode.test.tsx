@@ -326,6 +326,8 @@ describe('FocusMode', () => {
     const metadata = createTask.mock.calls[0][3] as TaskMetadata;
     expect(metadata).toMatchObject({ sourceType: 'manual', mcpConnectors: ['context7'] });
     expect(metadata).not.toHaveProperty('plannedFor');
+    // Its timeline starts with the task being focused on
+    expect(metadata.activity).toEqual([{ at: NOW.toISOString(), kind: 'parked', value: 'Task steps' }]);
     expect(field).toHaveValue('');
     expect(screen.getByText('focus.park.added')).toBeInTheDocument();
     expect(screen.getByRole('timer')).toBeInTheDocument();

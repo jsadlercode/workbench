@@ -11,6 +11,7 @@ import { createTask, useTaskStore } from '../stores/task-store';
 import { useProjectStore } from '../stores/project-store';
 import { useSettingsStore } from '../stores/settings-store';
 import { getDefaultMcpConnectorIds } from '../../shared/utils/mcp-connectors';
+import type { TaskMetadata } from '../../shared/types';
 
 /**
  * Longest capture used as its own title. A short capture already reads like a title, and using it
@@ -25,9 +26,14 @@ export function captureTitle(description: string): string {
 
 /**
  * Adds a Backlog task to the project from a trimmed description; `plannedFor` is its planned
- * week (unset leaves it unplanned). Resolves to why it failed, or null.
+ * week (unset leaves it unplanned) and `extraMetadata` more fields for the new task (focus mode
+ * gives a parked thought its first activity entry). Resolves to why it failed, or null.
  */
-export type QuickCapture = (description: string, plannedFor?: string) => Promise<string | null>;
+export type QuickCapture = (
+  description: string,
+  plannedFor?: string,
+  extraMetadata?: Partial<TaskMetadata>
+) => Promise<string | null>;
 
 export function useQuickCapture(projectId: string): QuickCapture {
   const { t } = useTranslation(['tasks', 'common']);
@@ -35,13 +41,16 @@ export function useQuickCapture(projectId: string): QuickCapture {
   // The project's default branch and push setting, as the task dialog reads them
   const gitOptions = useTaskGitOptions(projectId);
 
-  return async (description, plannedFor) => {
+  return async (description, plannedFor, extraMetadata) => {
     try {
       // The dialog's defaults for fields it leaves as they are
-      const metadata = newTaskMetadata(
-        { mcpConnectors: getDefaultMcpConnectorIds(mcpConnectorSettings), planning: { plannedFor } },
-        gitOptions
-      );
+      const metadata: TaskMetadata = {
+        ...newTaskMetadata(
+          { mcpConnectors: getDefaultMcpConnectorIds(mcpConnectorSettings), planning: { plannedFor } },
+          gitOptions
+        ),
+        ...extraMetadata
+      };
       const title = captureTitle(description);
 
       // The board's store holds the window's project only: a task for another project (a

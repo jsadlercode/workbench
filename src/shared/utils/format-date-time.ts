@@ -43,3 +43,15 @@ export function formatShortDate(date: Date, now: Date = new Date()): string {
   const dayMonth = `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
   return date.getFullYear() === now.getFullYear() ? dayMonth : `${dayMonth} ${date.getFullYear()}`;
 }
+
+/**
+ * A moment as day, short month and time without seconds, like "27 Oct, 2:05 PM", with the year
+ * when it isn't the year of `now` ("27 Oct 2025, 2:05 PM"); empty for an invalid date. For short
+ * lists of past events, such as a task's timeline.
+ */
+export function formatShortDateTime(value: Date | string | number, now: Date = new Date()): string {
+  const date = toDate(value);
+  if (!date) return '';
+  const time = date.toLocaleTimeString('en-US', { ...TIME_OPTIONS, second: undefined });
+  return `${formatShortDate(date, now)}, ${time}`;
+}

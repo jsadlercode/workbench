@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, Dirent
 import { projectStore } from '../../project-store';
 import { titleGenerator } from '../../title-generator';
 import { AgentManager } from '../../agent';
-import { findTaskAndProject, mergeTaskMetadata, withPlanningSlips } from './shared';
+import { findTaskAndProject, mergeTaskMetadata, withPlanningSlips, withTaskActivity } from './shared';
 import { findAllSpecPaths, isValidTaskId } from '../../utils/spec-path-helpers';
 import { isPathWithinBase, findTaskWorktree } from '../../worktree-paths';
 import { cleanupWorktree } from '../../utils/worktree-cleanup';
@@ -394,9 +394,12 @@ export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
           }
         }
 
-        // Update metadata if provided
+        // Update task_metadata.json: for new metadata, a new description (the user's own text),
+        // or a new title (recorded in the task's activity)
         let updatedMetadata = task.metadata;
-        if (updates.metadata) {
+        const newTitle = finalTitle ?? task.title;
+        if (updates.metadata || updates.description !== undefined || newTitle !== task.title) {
+          const now = new Date();
           // Merge into the file on disk too: the task cache can be a few seconds older than
           // fields written since (e.g. the PR state), which a small update must not drop
           let onDisk: TaskMetadata = {};
@@ -406,22 +409,31 @@ export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
             // Missing or unreadable: merge into the cached metadata
           }
           const currentMetadata: TaskMetadata = { ...task.metadata, ...onDisk };
-          // A field sent as undefined is removed (clearing a deadline or a planned week)
-          updatedMetadata = mergeTaskMetadata(currentMetadata, updates.metadata);
-          // A planned week the task moves on from before it's done stays planned in the weekly review
-          updatedMetadata = withPlanningSlips(currentMetadata, updatedMetadata, task.status, new Date());
+          updatedMetadata = { ...currentMetadata };
+          if (updates.metadata) {
+            // A field sent as undefined is removed (clearing a deadline or a planned week)
+            updatedMetadata = mergeTaskMetadata(currentMetadata, updates.metadata);
+            // A planned week the task moves on from before it's done stays planned in the weekly review
+            updatedMetadata = withPlanningSlips(currentMetadata, updatedMetadata, task.status, now);
+          }
           // Keep the user's own description as the task card's source of truth
           if (updates.description !== undefined) {
             updatedMetadata.userDescription = updates.description;
           }
+          // What changed (title, planning, waiting, ticked steps), for the task's timeline
+          updatedMetadata = withTaskActivity(
+            { title: task.title, metadata: currentMetadata },
+            { title: newTitle, metadata: updatedMetadata, claudeRun: task.claudeRun },
+            now
+          );
 
           // Save newly attached files (any type) in the task's attachments folder
-          if (updates.metadata.attachedImages && updates.metadata.attachedImages.length > 0) {
+          if (updates.metadata?.attachedImages && updates.metadata.attachedImages.length > 0) {
             const attachmentsDir = path.join(specDir, 'attachments');
             mkdirSync(attachmentsDir, { recursive: true });
             const resolvedAttachmentsDir = path.resolve(attachmentsDir);
 
-            const savedImages: typeof updates.metadata.attachedImages = [];
+            const savedImages: NonNullable<TaskMetadata['attachedImages']> = [];
 
             for (const image of updates.metadata.attachedImages) {
               // If image has data (new image), save it
@@ -472,28 +484,10 @@ export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
           }
         }
 
-        // Description-only edit: record the user's description in task_metadata.json,
-        // merging into the file on disk so fields written since the task was cached survive
-        if (!updates.metadata && updates.description !== undefined) {
-          const metadataPath = path.join(specDir, 'task_metadata.json');
-          let onDisk: TaskMetadata = {};
-          try {
-            onDisk = JSON.parse(readFileSync(metadataPath, 'utf-8')) as TaskMetadata;
-          } catch {
-            // Missing or unreadable — start from the cached metadata
-          }
-          updatedMetadata = { ...task.metadata, ...onDisk, userDescription: updates.description };
-          try {
-            writeFileSync(metadataPath, JSON.stringify(updatedMetadata, null, 2), 'utf-8');
-          } catch (err) {
-            console.error('Failed to update task_metadata.json:', err);
-          }
-        }
-
         // Build the updated task object
         const updatedTask: Task = {
           ...task,
-          title: finalTitle ?? task.title,
+          title: newTitle,
           description: updates.description ?? task.description,
           metadata: updatedMetadata,
           updatedAt: new Date()

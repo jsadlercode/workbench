@@ -181,6 +181,38 @@ export interface FocusSession {
   note?: string;
 }
 
+/** What a task activity entry records (src/shared/utils/task-activity.ts) */
+export type TaskActivityKind =
+  | 'planned'
+  | 'deadline'
+  | 'flagged'
+  | 'unflagged'
+  | 'waiting'
+  | 'stopped_waiting'
+  | 'step_done'
+  | 'step_reopened'
+  | 'renamed'
+  | 'parked';
+
+/**
+ * One change the user (or the app) made to a task, for its timeline. TASK_UPDATE records them
+ * (planning, waiting, steps, title); focus mode's "Park a stray thought" creates a task with a
+ * `parked` entry.
+ */
+export interface TaskActivity {
+  /** ISO time */
+  at: string;
+  kind: TaskActivityKind;
+  /**
+   * planned: the new `plannedFor` (absent: not planned); deadline: the date (absent: cleared);
+   * waiting: who or what; step_done / step_reopened: the step's text; renamed: the new title;
+   * parked: the title of the task being focused on
+   */
+  value?: string;
+  /** deadline: a hard deadline */
+  hard?: boolean;
+}
+
 export interface TaskMetadata {
   // The description the user entered (shown on the task card)
   userDescription?: string;
@@ -246,6 +278,10 @@ export interface TaskMetadata {
 
   // Focus sessions the user logged on the task (src/shared/utils/focus.ts), oldest first
   focusSessions?: FocusSession[];
+
+  // Changes made to the task (src/shared/utils/task-activity.ts), oldest first, the newest 100:
+  // recorded by TASK_UPDATE, shown in the task's timeline
+  activity?: TaskActivity[];
 
   // Archive status
   archivedAt?: string;  // ISO date when task was archived

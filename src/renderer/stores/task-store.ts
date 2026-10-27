@@ -966,13 +966,13 @@ export async function persistUpdateTask(
   }
 }
 
-/** Metadata fields TASK_UPDATE writes itself: the weeks a planned week slipped from */
-const MAIN_WRITTEN_METADATA = ['slippedWeeks'] as const satisfies readonly (keyof TaskMetadata)[];
+/** Metadata fields TASK_UPDATE writes itself: the task's activity (its timeline) and slipped weeks */
+const MAIN_WRITTEN_METADATA = ['activity', 'slippedWeeks'] as const satisfies readonly (keyof TaskMetadata)[];
 
 /**
  * Take the fields the main process wrote itself (MAIN_WRITTEN_METADATA) from a task TASK_UPDATE
- * returned into the store's task, so an optimistic save shows them straight away (a slipped week
- * in the weekly review)
+ * returned into the store's task, so an optimistic save shows them straight away (a tick or a
+ * move in the task's timeline, a slipped week in the weekly review)
  */
 function takeMainWrittenMetadata(taskId: string, saved: Task | undefined): void {
   const savedMetadata = saved?.metadata;
@@ -1013,7 +1013,10 @@ export async function setYourStepDone(taskId: string, text: string, done: boolea
   };
   try {
     const result = await window.electronAPI.updateTask(taskId, { metadata: { yourStepsDone } });
-    if (result.success) return true;
+    if (result.success) {
+      takeMainWrittenMetadata(taskId, result.data);
+      return true;
+    }
     undo();
     return false;
   } catch {
@@ -1058,7 +1061,10 @@ export async function logFocusSession(taskId: string, projectId: string, session
 
   try {
     const result = await window.electronAPI.updateTask(taskId, { metadata: { focusSessions } });
-    if (result.success) return true;
+    if (result.success) {
+      takeMainWrittenMetadata(taskId, result.data);
+      return true;
+    }
     undo();
     return false;
   } catch {
@@ -1114,7 +1120,7 @@ async function saveMetadataChanges(taskId: string, changes: Partial<TaskMetadata
   try {
     const result = await window.electronAPI.updateTask(taskId, { metadata: changes });
     if (result.success) {
-      // The change as TASK_UPDATE recorded it (the weeks a planned week slipped from)
+      // The change as TASK_UPDATE recorded it (its activity, the weeks a planned week slipped from)
       takeMainWrittenMetadata(taskId, result.data);
       return true;
     }

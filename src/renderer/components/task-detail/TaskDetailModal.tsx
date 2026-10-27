@@ -54,6 +54,7 @@ import { isTaskSessionActive } from '../../../shared/utils/claude-run';
 import { TaskAttachments } from './TaskAttachments';
 import { YourSteps } from './YourSteps';
 import { FocusSessionsSummary } from './FocusSessionsSummary';
+import { TaskTimeline } from './TaskTimeline';
 import { WaitingChip } from '../WaitingChip';
 import { useFocusStore } from '../../stores/focus-store';
 import { QAFeedbackSection } from './task-review/QAFeedbackSection';
@@ -506,6 +507,9 @@ function TaskDetailModalContent({ open, task, onOpenChange }: { open: boolean; t
                           onToggle={state.toggleLogs}
                         />
                       </div>
+
+                      {/* What happened to the task, newest first */}
+                      <TaskTimeline task={task} />
                     </div>
                   </div>
             </div>

@@ -584,6 +584,51 @@
       "weekNoReview": "Week of {{date}} · No review"
     }
   },
+  "timeline": {
+    "title": "Timeline",
+    "claudeCode": "Claude Code",
+    "showAll": "Show all {{total}}",
+    "showLess": "Show less",
+    "loadFailed": "The run history didn't load",
+    "created": "Added to Backlog",
+    "states": {
+      "backlog": "Back to Backlog",
+      "queued": "Queued",
+      "planning": "Planning",
+      "coding": "Working on it",
+      "qa_review": "Checking its work",
+      "qa_fixing": "Fixing what the check found",
+      "human_review": "Moved to Human Review",
+      "human_review_run": "Ready for your review",
+      "error": "Run failed",
+      "creating_pr": "Creating a pull request",
+      "pr_created": "Pull request created",
+      "done": "Done"
+    },
+    "activity": {
+      "plannedWeek": "Moved to the week of {{date}}",
+      "plannedLater": "Moved to later",
+      "unplanned": "No longer planned",
+      "deadline": "Deadline {{date}}",
+      "hardDeadline": "Hard deadline {{date}}",
+      "deadlineCleared": "Deadline cleared",
+      "flagged": "Flagged",
+      "unflagged": "Flag removed",
+      "waiting": "Waiting on {{waitingOn}}",
+      "stoppedWaiting": "Stopped waiting",
+      "stepDone": "Step done: {{step}}",
+      "stepReopened": "Step reopened: {{step}}",
+      "renamed": "Renamed to {{title}}",
+      "parked": "Parked during a focus session on {{title}}",
+      "parkedNoTask": "Parked during a focus session"
+    },
+    "focusSession": "Focus session, {{duration}}, {{outcome}}",
+    "outcomes": {
+      "finished": "finished it",
+      "progress": "made progress",
+      "stuck": "got stuck"
+    }
+  },
   "previousRuns": {
     "title": "Previous runs",
     "description": "Execution history of the previous task runs"

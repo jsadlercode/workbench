@@ -1,7 +1,8 @@
 /**
  * "Park a stray thought": one line under the timer that drops a thought into the Backlog (not
  * planned, so it waits in "Not planned") without leaving focus. Enter parks it and keeps the
- * focus in the field for the next one.
+ * focus in the field for the next one. The new task's timeline starts with where it came from
+ * ("Parked during a focus session on ...").
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { useQuickCapture } from '../../hooks/useQuickCapture';
+import type { TaskActivity } from '../../../shared/types';
 
 /** How long "Added to Backlog" stays */
 const CONFIRMATION_MS = 2500;
@@ -20,9 +22,11 @@ const ERROR_ID = 'focus-park-error';
 interface ParkThoughtProps {
   /** The timer's project, where the thought goes */
   projectId: string;
+  /** The title of the task being focused on, for the parked task's timeline */
+  focusedTaskTitle: string;
 }
 
-export function ParkThought({ projectId }: ParkThoughtProps) {
+export function ParkThought({ projectId, focusedTaskTitle }: ParkThoughtProps) {
   const { t } = useTranslation(['tasks', 'common']);
   const capture = useQuickCapture(projectId);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +50,9 @@ export function ParkThought({ projectId }: ParkThoughtProps) {
     setError(null);
     setAdded(0);
     // Not planned: it waits in the Backlog's "Not planned" group
-    const failure = await capture(thought);
+    const parked: TaskActivity = { at: new Date().toISOString(), kind: 'parked' };
+    if (focusedTaskTitle.trim()) parked.value = focusedTaskTitle.trim();
+    const failure = await capture(thought, undefined, { activity: [parked] });
     if (failure) {
       setError(failure);
     } else {

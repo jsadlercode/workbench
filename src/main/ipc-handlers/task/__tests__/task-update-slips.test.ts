@@ -141,7 +141,8 @@ describe('TASK_UPDATE slipped weeks', () => {
     expect(metadataOnDisk(project, '002-flag')).toEqual({
       plannedFor: '2026-10-19',
       slippedWeeks: ['2026-10-12'],
-      flagged: true
+      flagged: true,
+      activity: [{ at: NOW.toISOString(), kind: 'flagged' }]
     });
   });
 
@@ -156,7 +157,8 @@ describe('TASK_UPDATE slipped weeks', () => {
     expect(metadataOnDisk(first, '001-a').plannedFor).toBe('2026-10-26');
     expect(metadataOnDisk(second, '001-a')).toEqual({
       plannedFor: '2026-11-02',
-      slippedWeeks: ['2026-10-26']
+      slippedWeeks: ['2026-10-26'],
+      activity: [{ at: NOW.toISOString(), kind: 'planned', value: '2026-11-02' }]
     });
   });
 });

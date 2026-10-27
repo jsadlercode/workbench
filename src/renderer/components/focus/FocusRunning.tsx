@@ -129,7 +129,7 @@ export function FocusRunning({ timer }: FocusRunningProps) {
         </div>
       )}
 
-      <ParkThought projectId={timer.projectId} />
+      <ParkThought projectId={timer.projectId} focusedTaskTitle={task?.title ?? timer.taskTitle} />
     </div>
   );
 }

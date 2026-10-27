@@ -1,5 +1,6 @@
 import type { Task, Project, TaskMetadata, TaskStatus } from '../../../shared/types';
 import { slipWeeks, withSlippedWeeks } from '../../../shared/utils/task-planning';
+import { taskActivityFor, withActivity, type TaskActivitySnapshot } from '../../../shared/utils/task-activity';
 import { projectStore } from '../../project-store';
 
 /**
@@ -69,4 +70,20 @@ export function withPlanningSlips(
   const slipped = slipWeeks(before?.plannedFor, after.plannedFor, now);
   if (slipped.length === 0) return after;
   return { ...after, slippedWeeks: withSlippedWeeks(after.slippedWeeks, slipped) };
+}
+
+/**
+ * A task's metadata after an update, with what the update changed (its title, planned week,
+ * deadline, flag, waiting and ticked steps; taskActivityFor) appended to `activity` for the
+ * task's timeline. Every path that changes these goes through TASK_UPDATE, so this is the one
+ * place that records them. An update that changes none of them leaves the metadata as it is.
+ */
+export function withTaskActivity(
+  before: TaskActivitySnapshot,
+  after: TaskActivitySnapshot & { metadata: TaskMetadata },
+  now: Date
+): TaskMetadata {
+  const added = taskActivityFor(before, after, now);
+  if (added.length === 0) return after.metadata;
+  return { ...after.metadata, activity: withActivity(after.metadata.activity, added) };
 }
