@@ -278,6 +278,14 @@
     "incompleteDescription": "This task stopped before Claude Code finished it ({{completed}}/{{total}} task list items done). The process likely exited early. Resume to continue the same session.",
     "resume": "Resume task"
   },
+  "yourSteps": {
+    "title": "Your steps",
+    "description": "What Claude Code left for you to do. Tick each step when it's done",
+    "progress": "{{done}} of {{total}} done",
+    "saveFailed": "Couldn't save the step. Try again",
+    "cardLeft_one": "{{open}} of {{count}} step left for you",
+    "cardLeft_other": "{{open}} of {{count}} steps left for you"
+  },
   "previousRuns": {
     "title": "Previous runs",
     "description": "Execution history of the previous task runs"

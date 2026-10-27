@@ -11,6 +11,7 @@ import {
 } from '../../ui/dialog';
 import { Button } from '../../ui/button';
 import { SettingsRow, SettingsRows } from '../../settings/SettingsRow';
+import { OpenStepsNote } from './OpenStepsNote';
 import type { Task, WorktreeLocalMergeResult, WorktreeStatus } from '../../../../shared/types';
 
 interface LocalMergeDialogProps {
@@ -133,6 +134,8 @@ export function LocalMergeDialog({ open, task, worktreeStatus, onOpenChange, onM
                 )}
                 <p className="pt-1 text-xs text-(--nav-label-color)">{t('taskReview:localMerge.hints.merge')}</p>
               </SettingsRows>
+              {/* Steps still left for the user: merging doesn't wait for them */}
+              <OpenStepsNote task={task} hint={t('taskReview:localMerge.hints.openSteps')} className="mt-3" />
             </div>
 
             <DialogFooter>

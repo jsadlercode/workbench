@@ -171,6 +171,26 @@ describe('ClaudeTaskRun', () => {
     expect(existsSync(path.join(specDir, 'task_logs.json'))).toBe(true);
   });
 
+  it('asks validation for the steps left for the user and saves them with the run', async () => {
+    triageMock.mockResolvedValue({ triage: triage() });
+    scripts.push(
+      { messages: [result('s1')] },
+      { messages: [result('s1', {
+        structured_output: { status: 'passed', summary: 'Drafted', checks: [], findings: [], yourSteps: [' Send the email in drafts/intro.md ', ''] },
+      })] },
+    );
+    const outcome = await makeRun().run();
+
+    const validate = spawned[1];
+    const schema = JSON.parse(argValue(validate.args, '--json-schema')!);
+    expect(schema.required).toContain('yourSteps');
+    expect(schema.properties.yourSteps.type).toBe('array');
+    const prompt = (validate.input as Array<{ type: string; text?: string }>).find((block) => block.type === 'text')?.text;
+    expect(prompt).toContain('yourSteps');
+    expect(outcome.validation?.yourSteps).toEqual(['Send the email in drafts/intro.md']);
+    expect(loadClaudeRunInfo(specDir)?.validation?.yourSteps).toEqual(['Send the email in drafts/intro.md']);
+  });
+
   it('skips planning and validation when not needed', async () => {
     triageMock.mockResolvedValue({ triage: triage() });
     scripts.push({ messages: [result('s2')] });

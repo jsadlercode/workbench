@@ -204,6 +204,10 @@ export interface TaskMetadata {
   useLocalBranch?: boolean;  // If true, use the local branch directly instead of preferring origin/branch (preserves gitignored files)
   pushNewBranches?: boolean;  // If false, keep the task branch local-only instead of auto-pushing to origin
 
+  // The run's "your steps" (ValidationReport.yourSteps) the user ticked off, by step text, so a
+  // revision that keeps a step keeps its tick
+  yourStepsDone?: string[];
+
   // Archive status
   archivedAt?: string;  // ISO date when task was archived
   archivedInVersion?: string;  // Version in which task was archived (from changelog)

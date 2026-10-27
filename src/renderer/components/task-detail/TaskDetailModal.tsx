@@ -51,6 +51,7 @@ import { TaskLogs, isTaskRunSettled } from './TaskLogs';
 import { PreviousRuns } from './PreviousRuns';
 import { isTaskSessionActive } from '../../../shared/utils/claude-run';
 import { TaskAttachments } from './TaskAttachments';
+import { YourSteps } from './YourSteps';
 import { QAFeedbackSection } from './task-review/QAFeedbackSection';
 import { CreatePRDialog } from './task-review/CreatePRDialog';
 import { MergePRDialog } from './task-review/MergePRDialog';
@@ -353,6 +354,9 @@ function TaskDetailModalContent({ open, task, onOpenChange }: { open: boolean; t
             <div className="flex-1 min-h-0 overflow-hidden">
                   <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                     <div className="px-6 pb-6 pt-2 space-y-5 overflow-x-hidden max-w-full">
+                      {/* Steps the run left for the user, first thing a reviewer sees (only when there are any) */}
+                      <YourSteps task={task} />
+
                       {/* Metadata */}
                       <TaskMetadata
                         task={task}

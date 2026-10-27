@@ -5,6 +5,7 @@ import { debugLog, debugWarn } from '../../shared/utils/debug-logger';
 import { useProjectStore } from './project-store';
 import { useSettingsStore } from './settings-store';
 import { resolveMaxParallelTasks } from '../../shared/constants/task';
+import { withYourStepDone } from '../../shared/utils/your-steps';
 
 /** Maximum log entries stored per task to prevent renderer OOM */
 export const MAX_LOG_ENTRIES = 5000;
@@ -959,6 +960,38 @@ export async function persistUpdateTask(
     return false;
   } catch (error) {
     console.error('Error persisting task update:', error);
+    return false;
+  }
+}
+
+/**
+ * Tick (or untick) one of the steps a task's run left for the user. The store changes right
+ * away; the list of ticked steps is then saved in the task's metadata, and the tick is undone
+ * when that fails.
+ */
+export async function setYourStepDone(taskId: string, text: string, done: boolean): Promise<boolean> {
+  const store = useTaskStore.getState();
+  const task = store.tasks.find((t) => t.id === taskId);
+  if (!task) return false;
+
+  const previous = task.metadata?.yourStepsDone;
+  const yourStepsDone = withYourStepDone(task, text, done);
+  store.updateTask(taskId, { metadata: { ...task.metadata, yourStepsDone } });
+
+  const undo = () => {
+    // Only when no later tick replaced this one
+    const current = useTaskStore.getState().tasks.find((t) => t.id === taskId);
+    if (current?.metadata?.yourStepsDone === yourStepsDone) {
+      useTaskStore.getState().updateTask(taskId, { metadata: { ...current.metadata, yourStepsDone: previous } });
+    }
+  };
+  try {
+    const result = await window.electronAPI.updateTask(taskId, { metadata: { yourStepsDone } });
+    if (result.success) return true;
+    undo();
+    return false;
+  } catch {
+    undo();
     return false;
   }
 }

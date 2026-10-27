@@ -103,7 +103,9 @@ function tasksAreEquivalent(prevTasks: Task[], nextTasks: Task[]): boolean {
       prev.id !== next.id ||
       prev.status !== next.status ||
       prev.executionProgress?.phase !== next.executionProgress?.phase ||
-      prev.updatedAt !== next.updatedAt
+      prev.updatedAt !== next.updatedAt ||
+      // Metadata changed in the store (ticked "your steps")
+      prev.metadata !== next.metadata
     ) {
       return false;
     }

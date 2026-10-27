@@ -12,6 +12,7 @@ import {
 import { Button } from '../../ui/button';
 import { ExternalLink } from '../../ui/external-link';
 import { SettingsRow, SettingsRows } from '../../settings/SettingsRow';
+import { OpenStepsNote } from './OpenStepsNote';
 import type { MergePRProgress, Task, WorktreeMergePROptions, WorktreeMergePRResult, WorktreeStatus } from '../../../../shared/types';
 
 interface MergePRDialogProps {
@@ -141,6 +142,8 @@ export function MergePRDialog({ open, task, worktreeStatus, onOpenChange, onMerg
                 )}
               </SettingsRows>
               <p className="mt-3 text-sm text-(--nav-label-color)">{t('taskReview:mergePr.hints.merge')}</p>
+              {/* Steps still left for the user: merging doesn't wait for them */}
+              <OpenStepsNote task={task} hint={t('taskReview:mergePr.hints.openSteps')} className="mt-3" />
             </div>
 
             {isMerging && (

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, Play, Square, Loader2, RotateCcw, Archive, GitPullRequest, MoreVertical } from 'lucide-react';
+import { AlertCircle, Play, Square, Loader2, RotateCcw, Archive, GitPullRequest, MoreVertical, ListChecks } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -19,6 +20,7 @@ import {
   JSON_ERROR_TITLE_SUFFIX
 } from '../../shared/constants';
 import { stopTask, checkTaskRunning, isIncompleteHumanReview, archiveTasks, hasRecentActivity, startTaskOrQueue, taskHasErrors, retryTask } from '../stores/task-store';
+import { getYourSteps } from '../../shared/utils/your-steps';
 import type { Task, TaskStatus } from '../../shared/types';
 
 // Stuck detection interval (ms). XState handles normal process exits (PROCESS_EXITED); this
@@ -59,7 +61,10 @@ function taskCardPropsAreEqual(prevProps: TaskCardProps, nextProps: TaskCardProp
     prevTask.reviewReason === nextTask.reviewReason &&
     prevTask.executionProgress?.phase === nextTask.executionProgress?.phase &&
     prevTask.metadata?.archivedAt === nextTask.metadata?.archivedAt &&
-    prevTask.metadata?.prUrl === nextTask.metadata?.prUrl
+    prevTask.metadata?.prUrl === nextTask.metadata?.prUrl &&
+    // "Your steps": the run's list and the ones the user ticked
+    prevTask.claudeRun?.validation === nextTask.claudeRun?.validation &&
+    prevTask.metadata?.yourStepsDone === nextTask.metadata?.yourStepsDone
   );
 
   // Only log when actually re-rendering (reduces noise significantly)
@@ -227,6 +232,8 @@ export const TaskCard = memo(function TaskCard({
   };
 
   const isArchived = !!task.metadata?.archivedAt;
+  // Steps the run left for the user that aren't ticked yet
+  const yourSteps = getYourSteps(task);
   // Failed tasks show the usage badge's "sign in again" alert icon next to the title; stuck
   // tasks show it in the color of their "Stuck" label
   const hasErrors = taskHasErrors(task);
@@ -270,6 +277,19 @@ export const TaskCard = memo(function TaskCard({
           <p role="alert" className="mt-1.5 text-xs text-destructive line-clamp-2 wrap-anywhere">
             {actionError}
           </p>
+        )}
+        {/* The steps left for the user, in the dialog's status label look (color text and
+            border, 10% tint) */}
+        {yourSteps.open > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <Badge
+              variant="outline"
+              className="gap-1.5 border-current bg-(--column-human-review)/10 text-xs text-(--column-human-review)"
+            >
+              <ListChecks className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+              {t('yourSteps.cardLeft', { open: yourSteps.open, count: yourSteps.total })}
+            </Badge>
+          </div>
         )}
 
         {/* Footer */}

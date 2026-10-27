@@ -131,6 +131,11 @@ export interface ValidationReport {
   summary: string;
   checks: ValidationCheck[];
   findings: ValidationFinding[];
+  /**
+   * Steps left that only the user can do (send a drafted email, add a secret, test on a
+   * device), in order. Empty when nothing is left; unset in reports saved before it existed
+   */
+  yourSteps?: string[];
 }
 
 /** Where Claude Code ran: natively on the host OS, or inside WSL (Windows, wsl shell) */

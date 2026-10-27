@@ -204,9 +204,17 @@ const VALIDATION_SCHEMA = {
         required: ['severity', 'description', 'fixed'],
       },
     },
+    yourSteps: {
+      type: 'array',
+      description: 'Steps left that only the user can do (send a drafted email, make a call, add a secret, test on a device), in order. Each is concrete, starts with a verb and is under about 100 characters. Empty when nothing is left',
+      items: { type: 'string' },
+    },
   },
-  required: ['status', 'summary', 'checks', 'findings'],
+  required: ['status', 'summary', 'checks', 'findings', 'yourSteps'],
 };
+
+/** Most "your steps" kept from a validation report */
+const MAX_YOUR_STEPS = 10;
 
 function buildSystemPrompt(config: TaskRunConfig, specDirRelative: string, parallelTasksPrompt?: string): string {
   const sections = [
@@ -601,7 +609,8 @@ Implement this task. Verify it with ${verificationHint(triage)}, then commit the
 1. Run ${verificationHint(triage)}. Fix failures your change caused.
 2. Review the full change against \`${this.config.baseBranch}\` (\`git diff ${this.config.baseBranch}...HEAD\` plus any uncommitted changes) with fresh eyes. Use the /code-review skill if it's available; otherwise use a subagent that sees only the diff and the task. Fix only findings that affect correctness or the task's requirements; don't gold-plate.
 3. Commit any remaining changes.
-Then return the report: status "passed" when the change works and the checks pass, "partial" when some checks couldn't run, "failed" when something is still broken.`;
+Then return the report: status "passed" when the change works and the checks pass, "partial" when some checks couldn't run, "failed" when something is still broken.
+In "yourSteps", list in order the steps left that only the user can do, such as sending an email you drafted, making a call, adding a secret or testing on a device. Each step is concrete, starts with a verb, takes 30 minutes or less, and is under about 100 characters. Don't list work you could do yourself. Leave the list empty when nothing is left for the user.`;
         break;
       case 'revise':
         text = `${resume ? '' : `${taskBlock(this.config)}\n\n`}The reviewer requested changes:
@@ -1142,7 +1151,7 @@ export function resetClaudeRunInfo(specDir: string): void {
   } satisfies ClaudeRunInfo, null, 2));
 }
 
-function normalizeValidation(structured: unknown, fallbackText?: string): ValidationReport {
+export function normalizeValidation(structured: unknown, fallbackText?: string): ValidationReport {
   const raw = (structured ?? {}) as Partial<ValidationReport>;
   const status = raw.status === 'passed' || raw.status === 'failed' || raw.status === 'partial' ? raw.status : 'partial';
   return {
@@ -1150,5 +1159,19 @@ function normalizeValidation(structured: unknown, fallbackText?: string): Valida
     summary: typeof raw.summary === 'string' && raw.summary.trim() ? raw.summary : (fallbackText ?? ''),
     checks: Array.isArray(raw.checks) ? raw.checks.filter((c) => c && typeof c.name === 'string') : [],
     findings: Array.isArray(raw.findings) ? raw.findings.filter((f) => f && typeof f.description === 'string') : [],
+    yourSteps: normalizeYourSteps(raw.yourSteps),
   };
+}
+
+/** Trimmed, non-empty, distinct steps (ticks are kept by step text), at most MAX_YOUR_STEPS */
+function normalizeYourSteps(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const steps: string[] = [];
+  for (const item of value) {
+    if (typeof item !== 'string') continue;
+    const step = item.trim();
+    if (step && !steps.includes(step)) steps.push(step);
+    if (steps.length === MAX_YOUR_STEPS) break;
+  }
+  return steps;
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildMcpConfig } from '../mcp-config';
 import { resolveClaudeCodeTaskSettings } from '../settings';
 import { applyPlanningPolicy, fixedTriage } from '../triage';
-import { isClaudeRunFinished } from '../task-runner';
+import { isClaudeRunFinished, normalizeValidation } from '../task-runner';
 import { DEFAULT_CLAUDE_CODE_TASK_SETTINGS } from '../../../shared/types/claude-code';
 
 describe('buildMcpConfig', () => {
@@ -55,5 +55,38 @@ describe('isClaudeRunFinished', () => {
     expect(isClaudeRunFinished(run([{ name: 'validate', ...done, isError: true }]), true)).toBe(false);
     expect(isClaudeRunFinished(run([{ name: 'validate', startedAt: 'a' }]), true)).toBe(false);
     expect(isClaudeRunFinished(null, true)).toBe(false);
+  });
+});
+
+describe('normalizeValidation', () => {
+  const report = (fields: Record<string, unknown>) => ({ status: 'passed', summary: 'Done', checks: [], findings: [], ...fields });
+
+  it('keeps the steps left for the user, trimmed and in order', () => {
+    const { yourSteps } = normalizeValidation(report({ yourSteps: ['  Send the email in drafts/intro.md to Sam ', 'Add STRIPE_KEY to the CI secrets'] }));
+    expect(yourSteps).toEqual(['Send the email in drafts/intro.md to Sam', 'Add STRIPE_KEY to the CI secrets']);
+  });
+
+  it('drops empty, duplicate and non-string steps', () => {
+    const { yourSteps } = normalizeValidation(report({ yourSteps: ['Call the venue', '', '   ', 42, null, 'Call the venue', { text: 'x' }, 'Test on an iPhone'] }));
+    expect(yourSteps).toEqual(['Call the venue', 'Test on an iPhone']);
+  });
+
+  it('keeps at most 10 steps', () => {
+    const steps = Array.from({ length: 14 }, (_, i) => `Step ${i + 1}`);
+    const { yourSteps } = normalizeValidation(report({ yourSteps: steps }));
+    expect(yourSteps).toEqual(steps.slice(0, 10));
+  });
+
+  it('gives an empty list when the report has none or no valid list', () => {
+    expect(normalizeValidation(report({ yourSteps: [] })).yourSteps).toEqual([]);
+    expect(normalizeValidation(report({})).yourSteps).toEqual([]);
+    expect(normalizeValidation(report({ yourSteps: 'Send the email' })).yourSteps).toEqual([]);
+    expect(normalizeValidation(undefined, 'Fallback summary')).toEqual({
+      status: 'partial',
+      summary: 'Fallback summary',
+      checks: [],
+      findings: [],
+      yourSteps: [],
+    });
   });
 });

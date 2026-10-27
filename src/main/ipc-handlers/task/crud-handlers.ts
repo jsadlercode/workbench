@@ -395,7 +395,15 @@ export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
         // Update metadata if provided
         let updatedMetadata = task.metadata;
         if (updates.metadata) {
-          updatedMetadata = { ...task.metadata, ...updates.metadata };
+          // Merge into the file on disk too: the task cache can be a few seconds older than
+          // fields written since (e.g. the PR state), which a small update must not drop
+          let onDisk: TaskMetadata = {};
+          try {
+            onDisk = JSON.parse(readFileSync(path.join(specDir, 'task_metadata.json'), 'utf-8')) as TaskMetadata;
+          } catch {
+            // Missing or unreadable: merge into the cached metadata
+          }
+          updatedMetadata = { ...task.metadata, ...onDisk, ...updates.metadata };
           // Keep the user's own description as the task card's source of truth
           if (updates.description !== undefined) {
             updatedMetadata.userDescription = updates.description;
