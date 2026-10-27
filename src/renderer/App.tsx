@@ -18,6 +18,7 @@ import { useMemoryGraphStore } from './stores/memory-graph-store';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TaskDetailModal } from './components/task-detail/TaskDetailModal';
 import { FocusMode } from './components/focus/FocusMode';
+import { WeeklyReview } from './components/review/WeeklyReview';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog, type AppSection } from './components/settings/AppSettings';
 import type { ProjectSettingsSection } from './components/settings/ProjectSettingsContent';
@@ -720,6 +721,8 @@ export function App() {
               />
             ) : selectedProject ? (
               <>
+                {/* App-wide: every project's week. Inside this branch so the terminals stay mounted */}
+                {activeView === 'review' && <WeeklyReview onOpenTask={handleTaskClick} />}
                 {activeView === 'kanban' && (
                   <KanbanBoard
                     tasks={tasks}
@@ -744,6 +747,9 @@ export function App() {
                   <MemoryGraph projectId={activeProjectId || selectedProjectId!} />
                 )}
               </>
+            ) : activeView === 'review' ? (
+              // The review works without a project in this window too
+              <WeeklyReview onOpenTask={handleTaskClick} />
             ) : (
               <WelcomeScreen
                 onNewProject={handleNewProject}

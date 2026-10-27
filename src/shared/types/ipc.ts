@@ -152,7 +152,8 @@ export interface ElectronAPI {
   getTasks: (projectId: string, options?: { forceRefresh?: boolean }) => Promise<IPCResult<Task[]>>;
   createTask: (projectId: string, title: string, description: string, metadata?: TaskMetadata) => Promise<IPCResult<Task>>;
   deleteTask: (taskId: string) => Promise<IPCResult>;
-  updateTask: (taskId: string, updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }) => Promise<IPCResult<Task>>;
+  /** `projectId` looks the task up in that project only (spec ids repeat between projects) */
+  updateTask: (taskId: string, updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }, projectId?: string) => Promise<IPCResult<Task>>;
   startTask: (taskId: string, options?: TaskStartOptions) => void;
   stopTask: (taskId: string) => void;
   retryTask: (taskId: string) => Promise<IPCResult<{ action: 'started' | 'queued' }>>;
@@ -160,6 +161,12 @@ export interface ElectronAPI {
   updateTaskStatus: (taskId: string, status: TaskStatus, options?: { forceCleanup?: boolean }) => Promise<IPCResult & { worktreeExists?: boolean; worktreePath?: string }>;
   recoverStuckTask: (taskId: string, options?: TaskRecoveryOptions) => Promise<IPCResult<TaskRecoveryResult>>;
   checkTaskRunning: (taskId: string) => Promise<IPCResult<boolean>>;
+  /** The states the project's tasks entered, oldest first, from its task changelog */
+  getTaskHistory: (projectId: string) => Promise<IPCResult<import('./task-history').TaskHistoryEntry[]>>;
+
+  // Weekly review (app-wide)
+  getWeeklyReviews: () => Promise<IPCResult<import('./weekly-review').WeeklyReview[]>>;
+  saveWeeklyReview: (review: import('./weekly-review').WeeklyReview) => Promise<IPCResult<import('./weekly-review').WeeklyReview>>;
 
   // Image operations
   loadImageThumbnail: (projectPath: string, specId: string, imagePath: string) => Promise<IPCResult<string>>;

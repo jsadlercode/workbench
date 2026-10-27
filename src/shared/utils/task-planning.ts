@@ -254,3 +254,37 @@ export function planningMetadata(value: PlanningFormValue, now: Date): PlanningM
     flagged: value.flagged ? true : undefined
   };
 }
+
+/**
+ * The Monday `weeks` weeks after the week `week` falls in (`YYYY-MM-DD`; negative goes back), or
+ * null when `week` isn't a date
+ */
+export function addWeeks(week: string, weeks: number): string | null {
+  const date = parseDateKey(week);
+  return date ? weekStart(new Date(date.getFullYear(), date.getMonth(), date.getDate() + weeks * 7)) : null;
+}
+
+/**
+ * The weeks a task slips when its `plannedFor` changes (a task not done yet): moving it from week
+ * A to a later week, to `'later'` or to not planned slips every week from A through this week, or
+ * through the week before the new one when that comes first. Nothing slips when it wasn't planned
+ * for a week, moves to an earlier week or the same one, or was planned for a week still to come.
+ */
+export function slipWeeks(oldPlannedFor: string | undefined, newPlannedFor: string | undefined, now: Date): string[] {
+  const from = plannedWeek(oldPlannedFor);
+  if (!from) return [];
+  const to = plannedWeek(newPlannedFor);
+  if (to && to <= from) return [];
+  const thisWeek = weekStart(now);
+  const beforeNew = to ? addWeeks(to, -1) : null;
+  const last = beforeNew && beforeNew < thisWeek ? beforeNew : thisWeek;
+  const weeks: string[] = [];
+  for (let week: string | null = from; week && week <= last; week = addWeeks(week, 1)) weeks.push(week);
+  return weeks;
+}
+
+/** The task's slipped weeks with more added: sorted, each once, dates only */
+export function withSlippedWeeks(current: readonly string[] | undefined, added: readonly string[]): string[] {
+  const weeks = [...(Array.isArray(current) ? current : []), ...added].filter((week) => parseDateKey(week) !== null);
+  return [...new Set(weeks)].sort();
+}

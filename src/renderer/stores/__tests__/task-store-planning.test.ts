@@ -71,4 +71,14 @@ describe('setTaskPlanning', () => {
     expect(await store.setTaskPlanning('task-1', { flagged: undefined })).toBe(false);
     expect(metadata()?.flagged).toBe(true);
   });
+
+  it('takes the weeks the task slipped from out of the saved task (the weekly review counts them)', async () => {
+    mockUpdateTask.mockResolvedValue({
+      success: true,
+      data: { ...task(), metadata: { ...task().metadata, plannedFor: '2026-11-02', slippedWeeks: ['2026-10-26'] } }
+    });
+
+    expect(await store.setTaskPlanning('task-1', { plannedFor: '2026-11-02' })).toBe(true);
+    expect(metadata()).toMatchObject({ plannedFor: '2026-11-02', slippedWeeks: ['2026-10-26'], flagged: true });
+  });
 });

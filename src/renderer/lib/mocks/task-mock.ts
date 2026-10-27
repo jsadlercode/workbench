@@ -2,7 +2,7 @@
  * Mock implementation for task operations
  */
 
-import type { TaskRecoveryOptions } from '../../../shared/types';
+import type { TaskRecoveryOptions, WeeklyReview } from '../../../shared/types';
 import { mockTasks } from './mock-data';
 
 export const taskMock = {
@@ -28,6 +28,15 @@ export const taskMock = {
   }),
 
   deleteTask: async () => ({ success: true }),
+
+  getTaskHistory: async () => ({ success: true, data: [] }),
+
+  getWeeklyReviews: async () => ({ success: true, data: [] }),
+
+  saveWeeklyReview: async (review: WeeklyReview) => ({
+    success: true,
+    data: { ...review, savedAt: new Date().toISOString() }
+  }),
 
   updateTask: async (_taskId: string, updates: { title?: string; description?: string }) => ({
     success: true,

@@ -465,6 +465,125 @@
       "hoursMinutes": "{{hours}} h {{minutes}} min"
     }
   },
+  "weeklyReview": {
+    "title": "Weekly review",
+    "refresh": "Refresh",
+    "loading": "Loading your weeks",
+    "loadFailed": "Some of it didn't load. Try refreshing",
+    "noProjects": "Add a project to review your weeks",
+    "weekOf": "Week of {{date}}",
+    "weekNumber": "Week {{number}}",
+    "thisWeek": "This week",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "backToThisWeek": "Back to this week",
+    "snapshotNote": "Figures as saved with the review on {{time}}",
+    "tiles": {
+      "label": "The week in figures",
+      "finished": "Finished",
+      "nothingFinished": "Nothing finished that week",
+      "nothingFinishedYet": "Nothing finished yet",
+      "noneUnplanned": "All of them planned",
+      "unplanned_one": "{{count}} of them unplanned",
+      "unplanned_other": "{{count}} of them unplanned",
+      "plannedDone": "Planned work done",
+      "noPlan": "No plan",
+      "nothingPlanned": "Nothing was planned for the week",
+      "plannedOf": "{{done}} of {{total}} planned tasks",
+      "focus": "Focus time",
+      "sessions_one": "{{count}} session",
+      "sessions_other": "{{count}} sessions",
+      "sessionsOutcomes": "{{sessions}} · {{finished}} finished, {{stuck}} stuck",
+      "stillOpen": "Still open",
+      "carriedOver": "Carried over",
+      "noHardMissed": "No hard deadlines missed",
+      "hardMissed_one": "{{count}} hard deadline missed",
+      "hardMissed_other": "{{count}} hard deadlines missed"
+    },
+    "days": {
+      "title": "Each day",
+      "label": "Tasks finished each day",
+      "daySummary": "{{day}}: {{finished}} · {{focus}}",
+      "finished_one": "{{count}} finished",
+      "finished_other": "{{count}} finished",
+      "focusTime": "{{duration}} focus",
+      "noFocus": "No focus",
+      "empty": "Nothing was finished that week",
+      "emptyThisWeek": "Nothing finished yet this week",
+      "legend": "Projects"
+    },
+    "projects": {
+      "title": "Where the work went",
+      "counts": "{{done}} done · {{open}} open",
+      "legend": "Key",
+      "legendDone": "Done",
+      "legendOpen": "Planned, still open",
+      "empty": "No work finished or planned that week",
+      "emptyThisWeek": "No work finished or planned this week yet",
+      "otherProject": "Removed project"
+    },
+    "finished": {
+      "title": "Finished",
+      "unplanned": "Unplanned",
+      "empty": "Nothing was finished that week",
+      "emptyThisWeek": "Nothing finished yet this week"
+    },
+    "planned": {
+      "title": "Planned but not finished",
+      "titleThisWeek": "Planned and still open",
+      "empty": "Everything planned for that week was finished",
+      "emptyThisWeek": "Nothing planned is still open",
+      "nextWeek": "Next week",
+      "thisWeek": "This week",
+      "later": "Later",
+      "moveAllNext": "Move all to next week",
+      "moveAllThis": "Move all to this week",
+      "moveToNextWeek": "Move {{title}} to next week",
+      "moveToThisWeek": "Move {{title}} to this week",
+      "moveToLater": "Move {{title}} to later",
+      "doneOn": "Done {{date}}",
+      "moveFailed": "Couldn't move it. Try again"
+    },
+    "reflection": {
+      "title": "How did the week go?",
+      "overall": "Overall",
+      "energy": "Energy",
+      "overallScale": {
+        "1": "Rough",
+        "2": "Hard going",
+        "3": "OK",
+        "4": "Good",
+        "5": "Great"
+      },
+      "energyScale": {
+        "1": "Empty",
+        "2": "Low",
+        "3": "Steady",
+        "4": "Good",
+        "5": "High"
+      },
+      "wentWell": "What went well",
+      "gotInTheWay": "What got in the way",
+      "tryNext": "One thing to try next week",
+      "save": "Save review",
+      "update": "Update review",
+      "saved": "Saved {{time}}",
+      "saveFailed": "Couldn't save the review. Try again",
+      "unsaved": "Not saved yet"
+    },
+    "trend": {
+      "title": "Last eight weeks",
+      "empty": "Save a review each week and your trend over the last eight weeks shows here",
+      "plannedDone": "Planned work finished",
+      "plannedPercent": "{{percent}}% of planned work finished",
+      "nothingPlanned": "Nothing planned",
+      "noRating": "Not rated",
+      "noReview": "No review",
+      "week": "Week",
+      "weekSummary": "Week of {{date}} · {{planned}} · Overall: {{overall}}",
+      "weekNoReview": "Week of {{date}} · No review"
+    }
+  },
   "previousRuns": {
     "title": "Previous runs",
     "description": "Execution history of the previous task runs"

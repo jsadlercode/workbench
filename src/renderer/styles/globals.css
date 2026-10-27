@@ -405,6 +405,18 @@
   --review-highlight-bg: var(--muted);
   /* Faint grid behind the live agent graph */
   --grid-line: rgba(11, 11, 11, 0.05);
+  /* Chart series (categorical, fixed order; validated for color vision deficiency on the
+     background in light and in dark). The weekly review colors each project by its slot */
+  --chart-1: #2A78D6;
+  --chart-2: #EB6834;
+  --chart-3: #1BAF7A;
+  --chart-4: #EDA100;
+  --chart-5: #E87BA4;
+  --chart-6: #008300;
+  --chart-7: #6250D6;
+  --chart-8: #E34948;
+  /* Series past the eighth fold into one neutral */
+  --chart-other: #898781;
 }
 
 /* ============================================
@@ -553,6 +565,16 @@
   --review-highlight-bg: var(--muted);
   /* Faint grid behind the live agent graph */
   --grid-line: rgba(255, 255, 255, 0.035);
+  /* Chart series: the same hues, stepped for the dark background */
+  --chart-1: #3987E5;
+  --chart-2: #D95926;
+  --chart-3: #199E70;
+  --chart-4: #C98500;
+  --chart-5: #D55181;
+  --chart-6: #008300;
+  --chart-7: #9085E9;
+  --chart-8: #E66767;
+  --chart-other: #7A7973;
 }
 
 /* Default theme: serif display headings use a lighter weight, like Claude Desktop */

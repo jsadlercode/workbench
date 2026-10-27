@@ -966,6 +966,30 @@ export async function persistUpdateTask(
   }
 }
 
+/** Metadata fields TASK_UPDATE writes itself: the weeks a planned week slipped from */
+const MAIN_WRITTEN_METADATA = ['slippedWeeks'] as const satisfies readonly (keyof TaskMetadata)[];
+
+/**
+ * Take the fields the main process wrote itself (MAIN_WRITTEN_METADATA) from a task TASK_UPDATE
+ * returned into the store's task, so an optimistic save shows them straight away (a slipped week
+ * in the weekly review)
+ */
+function takeMainWrittenMetadata(taskId: string, saved: Task | undefined): void {
+  const savedMetadata = saved?.metadata;
+  if (!savedMetadata) return;
+  const store = useTaskStore.getState();
+  const current = store.tasks.find((t) => t.id === taskId && (!saved.projectId || t.projectId === saved.projectId));
+  if (!current) return;
+  const changes: Partial<TaskMetadata> = {};
+  for (const key of MAIN_WRITTEN_METADATA) {
+    const value = savedMetadata[key];
+    if (value !== undefined && JSON.stringify(value) !== JSON.stringify(current.metadata?.[key])) {
+      Object.assign(changes, { [key]: value });
+    }
+  }
+  if (Object.keys(changes).length > 0) store.updateTask(current.id, { metadata: { ...current.metadata, ...changes } });
+}
+
 /**
  * Tick (or untick) one of the steps a task's run left for the user. The store changes right
  * away; the list of ticked steps is then saved in the task's metadata, and the tick is undone
@@ -1089,7 +1113,11 @@ async function saveMetadataChanges(taskId: string, changes: Partial<TaskMetadata
   };
   try {
     const result = await window.electronAPI.updateTask(taskId, { metadata: changes });
-    if (result.success) return true;
+    if (result.success) {
+      // The change as TASK_UPDATE recorded it (the weeks a planned week slipped from)
+      takeMainWrittenMetadata(taskId, result.data);
+      return true;
+    }
     undo();
     return false;
   } catch {

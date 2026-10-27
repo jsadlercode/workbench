@@ -1,4 +1,5 @@
-import type { Task, Project, TaskMetadata } from '../../../shared/types';
+import type { Task, Project, TaskMetadata, TaskStatus } from '../../../shared/types';
+import { slipWeeks, withSlippedWeeks } from '../../../shared/utils/task-planning';
 import { projectStore } from '../../project-store';
 
 /**
@@ -50,4 +51,22 @@ export function mergeTaskMetadata(current: TaskMetadata | undefined, updates: Pa
     if (value === undefined || value === null) delete merged[key];
   }
   return merged as TaskMetadata;
+}
+
+/**
+ * A task's metadata after an update, with the weeks its planned week slipped added to
+ * `slippedWeeks` (slipWeeks): moving a task that isn't done from its week to a later one, to
+ * later or to not planned. Every path that changes a planned week goes through TASK_UPDATE (the
+ * card menu, the dialogs, the weekly review's moves), so this is the one place that records it.
+ */
+export function withPlanningSlips(
+  before: TaskMetadata | undefined,
+  after: TaskMetadata,
+  status: TaskStatus,
+  now: Date
+): TaskMetadata {
+  if (status === 'done') return after;
+  const slipped = slipWeeks(before?.plannedFor, after.plannedFor, now);
+  if (slipped.length === 0) return after;
+  return { ...after, slippedWeeks: withSlippedWeeks(after.slippedWeeks, slipped) };
 }

@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, Dirent
 import { projectStore } from '../../project-store';
 import { titleGenerator } from '../../title-generator';
 import { AgentManager } from '../../agent';
-import { findTaskAndProject, mergeTaskMetadata } from './shared';
+import { findTaskAndProject, mergeTaskMetadata, withPlanningSlips } from './shared';
 import { findAllSpecPaths, isValidTaskId } from '../../utils/spec-path-helpers';
 import { isPathWithinBase, findTaskWorktree } from '../../worktree-paths';
 import { cleanupWorktree } from '../../utils/worktree-cleanup';
@@ -338,18 +338,20 @@ export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
   );
 
   /**
-   * Update a task
+   * Update a task. `projectId` (optional) looks the task up in that project only: callers that
+   * work across projects (the weekly review) pass it, since spec ids repeat between projects.
    */
   handleIpc(
     IPC_CHANNELS.TASK_UPDATE,
     async (
       _,
       taskId: string,
-      updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }
+      updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> },
+      projectId?: string
     ): Promise<IPCResult<Task>> => {
       try {
         // Find task and project
-        const { task, project } = findTaskAndProject(taskId);
+        const { task, project } = findTaskAndProject(taskId, projectId);
 
         if (!task || !project) {
           return { success: false, error: 'Task not found' };
@@ -403,8 +405,11 @@ export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
           } catch {
             // Missing or unreadable: merge into the cached metadata
           }
+          const currentMetadata: TaskMetadata = { ...task.metadata, ...onDisk };
           // A field sent as undefined is removed (clearing a deadline or a planned week)
-          updatedMetadata = mergeTaskMetadata({ ...task.metadata, ...onDisk }, updates.metadata);
+          updatedMetadata = mergeTaskMetadata(currentMetadata, updates.metadata);
+          // A planned week the task moves on from before it's done stays planned in the weekly review
+          updatedMetadata = withPlanningSlips(currentMetadata, updatedMetadata, task.status, new Date());
           // Keep the user's own description as the task card's source of truth
           if (updates.description !== undefined) {
             updatedMetadata.userDescription = updates.description;

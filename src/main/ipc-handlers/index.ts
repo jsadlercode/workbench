@@ -25,6 +25,7 @@ import { registerLiveAgentHandlers } from './live-agent-handlers';
 import { registerMcpHandlers } from './mcp-handlers';
 import { registerProfileHandlers } from './profile-handlers';
 import { registerShellRuntimeHandlers } from './shell-runtime-handlers';
+import { registerWeeklyReviewHandlers } from './weekly-review-handlers';
 import { registerWindowHandlers, type WindowHandlerDeps } from './window-handlers';
 import { registerTerminalWorktreeIpcHandlers } from './terminal';
 import { notificationService } from '../notification-service';
@@ -96,6 +97,9 @@ export function setupIpcHandlers(
 
   // Windows shell setting (runtime status, WSL availability, relaunch to apply)
   registerShellRuntimeHandlers();
+
+  // Weekly review (app-wide reviews in the app's data folder)
+  registerWeeklyReviewHandlers();
 
   console.warn('[IPC] All handler modules registered successfully');
 }

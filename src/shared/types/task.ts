@@ -164,7 +164,10 @@ export type ModelType = string;
 /** How a focus session went, as the user picked it at the end */
 export type FocusOutcome = 'finished' | 'progress' | 'stuck';
 
-/** One focus timer session on a task (focus mode) */
+/**
+ * One focus timer session on a task (focus mode). A weekly review sums `focusedSeconds` per
+ * week, so pauses are left out of it.
+ */
 export interface FocusSession {
   /** ISO time the timer was started */
   startedAt: string;
@@ -232,6 +235,9 @@ export interface TaskMetadata {
   deadline?: string;  // `YYYY-MM-DD`
   hardDeadline?: boolean;  // A committed deadline, as opposed to a target date
   flagged?: boolean;
+  // Weeks (their Mondays, `YYYY-MM-DD`) the task was planned for and moved on from before it
+  // was done, recorded by TASK_UPDATE (slipWeeks), so a weekly review still counts it as planned
+  slippedWeeks?: string[];
 
   // Waiting on someone or something (src/shared/utils/waiting.ts): who or what, e.g. "House Labs
   // reply" (non-empty means waiting), and the ISO time the task started waiting

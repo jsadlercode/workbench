@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  CalendarCheck,
   Plus,
   RefreshCw,
   PanelLeft
@@ -36,7 +37,7 @@ import { UsageIndicator } from './UsageIndicator';
 import { FocusSidebarRow } from './focus/FocusSidebarRow';
 import type { Project, GitStatus } from '../../shared/types';
 
-export type SidebarView = 'projects' | 'kanban' | 'terminals' | 'insights' | 'memory';
+export type SidebarView = 'projects' | 'kanban' | 'terminals' | 'insights' | 'memory' | 'review';
 
 interface SidebarProps {
   onSettingsClick: () => void;
@@ -286,6 +287,19 @@ export function Sidebar({
 
           {/* Focus mode: a timer on one task, with the time left while it runs */}
           <FocusSidebarRow className={rowClass()} collapsed={isCollapsed} disabled={!selectedProjectId} />
+
+          {/* Weekly review: every project's week, so it needs no selected project */}
+          {withCollapsedTooltip('review', t('actions.weeklyReview'), (
+            <button
+              type="button"
+              onClick={() => handleNavClick('review')}
+              aria-current={activeView === 'review' ? 'page' : undefined}
+              className={cn(rowClass(activeView === 'review'), activeView !== 'review' && 'text-foreground')}
+            >
+              {renderRowIcon(CalendarCheck)}
+              {!isCollapsed && <span className="min-w-0 flex-1 truncate text-left">{t('actions.weeklyReview')}</span>}
+            </button>
+          ))}
         </div>
 
         {/* Navigation */}

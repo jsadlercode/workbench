@@ -22,7 +22,9 @@ import type {
   WorktreeMergePRResult,
   MergePRProgress,
   PullRequestState,
-  ImageAttachment
+  ImageAttachment,
+  TaskHistoryEntry,
+  WeeklyReview
 } from '../../shared/types';
 
 export interface TaskAPI {
@@ -35,9 +37,11 @@ export interface TaskAPI {
     metadata?: TaskMetadata
   ) => Promise<IPCResult<Task>>;
   deleteTask: (taskId: string) => Promise<IPCResult>;
+  /** `projectId` looks the task up in that project only (spec ids repeat between projects) */
   updateTask: (
     taskId: string,
-    updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }
+    updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> },
+    projectId?: string
   ) => Promise<IPCResult<Task>>;
   startTask: (taskId: string, options?: TaskStartOptions) => void;
   stopTask: (taskId: string) => void;
@@ -59,6 +63,12 @@ export interface TaskAPI {
     options?: import('../../shared/types').TaskRecoveryOptions
   ) => Promise<IPCResult<TaskRecoveryResult>>;
   checkTaskRunning: (taskId: string) => Promise<IPCResult<boolean>>;
+  /** The states the project's tasks entered, oldest first, from its task changelog */
+  getTaskHistory: (projectId: string) => Promise<IPCResult<TaskHistoryEntry[]>>;
+
+  // Weekly review (app-wide)
+  getWeeklyReviews: () => Promise<IPCResult<WeeklyReview[]>>;
+  saveWeeklyReview: (review: WeeklyReview) => Promise<IPCResult<WeeklyReview>>;
 
   // Worktree Change Detection
   checkWorktreeChanges: (taskId: string) => Promise<IPCResult<{ hasChanges: boolean; worktreePath?: string; changedFileCount?: number }>>;
@@ -125,9 +135,21 @@ export const createTaskAPI = (): TaskAPI => ({
 
   updateTask: (
     taskId: string,
-    updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }
+    updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> },
+    projectId?: string
   ): Promise<IPCResult<Task>> =>
-    ipcRenderer.invoke(IPC_CHANNELS.TASK_UPDATE, taskId, updates),
+    projectId === undefined
+      ? ipcRenderer.invoke(IPC_CHANNELS.TASK_UPDATE, taskId, updates)
+      : ipcRenderer.invoke(IPC_CHANNELS.TASK_UPDATE, taskId, updates, projectId),
+
+  getTaskHistory: (projectId: string): Promise<IPCResult<TaskHistoryEntry[]>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TASK_HISTORY_GET, projectId),
+
+  getWeeklyReviews: (): Promise<IPCResult<WeeklyReview[]>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.WEEKLY_REVIEW_LIST),
+
+  saveWeeklyReview: (review: WeeklyReview): Promise<IPCResult<WeeklyReview>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.WEEKLY_REVIEW_SAVE, review),
 
   startTask: (taskId: string, options?: TaskStartOptions): void =>
     ipcRenderer.send(IPC_CHANNELS.TASK_START, taskId, options),

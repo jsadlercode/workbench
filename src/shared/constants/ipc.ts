@@ -44,6 +44,11 @@ export const IPC_CHANNELS = {
   TASK_CHECK_RUNNING: 'task:checkRunning',
   TASK_LOAD_IMAGE_THUMBNAIL: 'task:loadImageThumbnail',
   TASK_CHECK_WORKTREE_CHANGES: 'task:checkWorktreeChanges',
+  TASK_HISTORY_GET: 'task:historyGet',  // The states a project's tasks entered, from its task changelog (TaskHistoryEntry[])
+
+  // Weekly review (app-wide, saved in the app's data folder)
+  WEEKLY_REVIEW_LIST: 'weeklyReview:list',
+  WEEKLY_REVIEW_SAVE: 'weeklyReview:save',
 
   // Workspace management (for human review)
   // Per-spec architecture: Each spec has its own worktree at .worktrees/{spec-name}/

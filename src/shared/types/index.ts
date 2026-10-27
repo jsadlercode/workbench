@@ -8,6 +8,8 @@ export * from './common';
 // Domain-specific types
 export * from './project';
 export * from './task';
+export * from './task-history';
+export * from './weekly-review';
 export * from './kanban';
 export * from './terminal';
 export * from './agent';
