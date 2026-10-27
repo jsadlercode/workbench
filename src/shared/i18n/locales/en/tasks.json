@@ -327,6 +327,30 @@
       "flagDescription": "Flagged tasks come first in their group"
     }
   },
+  "upNext": {
+    "title": "Up next",
+    "hint": "Backlog tasks to start now. Queued tasks start when a slot is free",
+    "suggestions_one": "{{count}} suggestion",
+    "suggestions_other": "{{count}} suggestions",
+    "showAll": "Show all {{total}}",
+    "showLess": "Show less",
+    "collapse": "Collapse Up next",
+    "expand": "Expand Up next",
+    "queue": "Queue",
+    "queueAriaLabel": "Queue {{title}}",
+    "queueFailed": "Couldn't queue it: {{error}}",
+    "reasons": {
+      "carried_over": "Carried over",
+      "overdue": "Overdue",
+      "past_target": "Past target",
+      "due_today": "Due today",
+      "due_in_days_one": "Due in {{count}} day",
+      "due_in_days_other": "Due in {{count}} days",
+      "flagged": "Flagged",
+      "this_week": "This week",
+      "next_week": "Next week"
+    }
+  },
   "yourSteps": {
     "title": "Your steps",
     "description": "What Claude Code left for you to do. Tick each step when it's done",

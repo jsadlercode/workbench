@@ -28,6 +28,7 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { TaskCard } from './TaskCard';
 import { SortableTaskCard } from './SortableTaskCard';
+import { UpNextBar } from './UpNextBar';
 import { TASK_STATUS_COLUMNS, TASK_STATUS_LABELS } from '../../shared/constants';
 import { sortColumnTasks } from '../../shared/utils/task-column-order';
 import { groupBacklog, hasPlannedGroups, type BacklogGroup } from '../../shared/utils/task-planning';
@@ -586,17 +587,17 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
   };
 
   /**
-   * Handle status change with worktree cleanup dialog support
-   * Consolidated handler that accepts an optional task object for the dialog title
+   * Move a task to a column (drag and drop, the card's Move to menu, Up next's Queue button), with
+   * worktree cleanup dialog support. Accepts an optional task object for the dialog title.
+   * Resolves to why the move failed, or null
    */
-  const handleStatusChange = async (taskId: string, requestedStatus: TaskStatus, providedTask?: Task) => {
-    setBoardError(null);
+  const moveTask = async (taskId: string, requestedStatus: TaskStatus, providedTask?: Task): Promise<string | null> => {
     const task = providedTask || tasks.find(t => t.id === taskId);
     let newStatus = requestedStatus;
 
     // ============================================
     // QUEUE SYSTEM: Enforce parallel task limit
-    // Called from both the dropdown menu and the drag-and-drop handler.
+    // Called from the dropdown menu, the drag-and-drop handler and Up next.
     // Excludes the task itself from the count to handle re-entry (e.g., redundant
     // status change or race with auto-promotion). Queue auto-promotion runs in the
     // main process (services/task-queue.ts), never through this function.
@@ -619,12 +620,20 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
           isProcessing: false,
           error: undefined
         });
-      } else {
-        setBoardError(result.error || t('common:errors.unknownError'));
+        return null;
       }
+      return result.error || t('common:errors.unknownError');
     }
     // Queued tasks are started by the main process (services/task-queue.ts) whenever
     // In Progress has a free slot, so nothing else is needed here.
+    return null;
+  };
+
+  /** Move a task to a column, showing a failure in the board's header */
+  const handleStatusChange = async (taskId: string, requestedStatus: TaskStatus, providedTask?: Task) => {
+    setBoardError(null);
+    const error = await moveTask(taskId, requestedStatus, providedTask);
+    if (error) setBoardError(error);
   };
 
   /**
@@ -822,6 +831,13 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
             )}
           </div>
         </div>
+      {/* Up next: Backlog tasks to queue now, with why (hidden without suggestions). Its Queue
+          button takes the same path as dragging the task to the Queue column */}
+      <UpNextBar
+        backlog={tasksByStatus.backlog}
+        onTaskClick={onTaskClick}
+        onQueue={(task) => moveTask(task.id, 'queue', task)}
+      />
       {/* Kanban columns */}
       <DndContext
         sensors={sensors}
