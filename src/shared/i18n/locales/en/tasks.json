@@ -351,6 +351,13 @@
       "next_week": "Next week"
     }
   },
+  "capture": {
+    "title": "Quick capture",
+    "placeholder": "Capture a task",
+    "shortcutHint": "Press N on the board to capture a task",
+    "added": "Added to Backlog",
+    "failed": "Couldn't add it: {{error}}"
+  },
   "yourSteps": {
     "title": "Your steps",
     "description": "What Claude Code left for you to do. Tick each step when it's done",

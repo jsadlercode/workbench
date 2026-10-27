@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { TaskCard } from './TaskCard';
 import { SortableTaskCard } from './SortableTaskCard';
 import { UpNextBar } from './UpNextBar';
+import { QuickCaptureBar } from './QuickCaptureBar';
 import { TASK_STATUS_COLUMNS, TASK_STATUS_LABELS } from '../../shared/constants';
 import { sortColumnTasks } from '../../shared/utils/task-column-order';
 import { groupBacklog, hasPlannedGroups, type BacklogGroup } from '../../shared/utils/task-planning';
@@ -63,6 +64,8 @@ function isValidDropColumn(id: string): id is typeof TASK_STATUS_COLUMNS[number]
 
 interface KanbanBoardProps {
   tasks: Task[];
+  /** The board's project; without it, the project of the first task (an empty board then has no capture bar) */
+  projectId?: string;
   onTaskClick: (task: Task) => void;
   onNewTaskClick?: () => void;
   onRefresh?: () => void;
@@ -423,7 +426,7 @@ const DroppableColumn = memo(function DroppableColumn({ status, tasks, onTaskCli
   );
 }, droppableColumnPropsAreEqual);
 
-export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isRefreshing }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, projectId: boardProjectId, onTaskClick, onNewTaskClick, onRefresh, isRefreshing }: KanbanBoardProps) {
   const { t } = useTranslation(['tasks', 'dialogs', 'common']);
   // The last board action's failure (moving a task, saving the column order), shown in the header
   const [boardError, setBoardError] = useState<string | null>(null);
@@ -441,8 +444,8 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
   // Project store for queue settings
   const projects = useProjectStore((state) => state.projects);
 
-  // Get projectId from first task
-  const projectId = tasks[0]?.projectId;
+  // The board's project, else the first task's
+  const projectId = boardProjectId ?? tasks[0]?.projectId;
   const project = projectId ? projects.find((p) => p.id === projectId) : undefined;
   const appMaxParallelTasks = useSettingsStore((state) => state.settings.maxParallelTasks);
   const maxParallelTasks = resolveMaxParallelTasks(appMaxParallelTasks, project?.settings?.maxParallelTasks);
@@ -809,14 +812,10 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
 
   return (
     <div className="flex h-full flex-col">
-      {/* Kanban header: the last board action's failure, then refresh */}
-      <div className="flex items-center justify-end gap-4 px-6 pt-2">
-          {boardError && (
-            <p role="alert" className="mr-auto min-w-0 truncate text-sm text-destructive" title={boardError}>
-              {boardError}
-            </p>
-          )}
-          <div className="flex items-center gap-2">
+      {/* Kanban header: quick capture, then refresh; the last board action's failure below */}
+      <div className="flex items-start justify-end gap-4 px-6 pt-2">
+          {projectId && <QuickCaptureBar projectId={projectId} className="flex-1" />}
+          <div className="flex shrink-0 items-center gap-2">
             {onRefresh && (
               <Button
                 variant="ghost"
@@ -831,6 +830,11 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
             )}
           </div>
         </div>
+      {boardError && (
+        <p role="alert" className="min-w-0 truncate px-6 pt-1 text-sm text-destructive" title={boardError}>
+          {boardError}
+        </p>
+      )}
       {/* Up next: Backlog tasks to queue now, with why (hidden without suggestions). Its Queue
           button takes the same path as dragging the task to the Queue column */}
       <UpNextBar

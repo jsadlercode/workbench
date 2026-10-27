@@ -17,7 +17,8 @@ import { TaskModalLayout } from './task-form/TaskModalLayout';
 import { TaskFormFields } from './task-form/TaskFormFields';
 import { PROJECT_DEFAULT_BRANCH, TaskGitOptionsSection, useTaskGitOptions } from './task-form/TaskGitOptions';
 import { createTask, saveDraft, loadDraft, clearDraft, isDraftEmpty, type TaskCreationDraft } from '../stores/task-store';
-import type { TaskMetadata, ImageAttachment } from '../../shared/types';
+import { newTaskMetadata } from './task-form/new-task-metadata';
+import type { ImageAttachment } from '../../shared/types';
 import { useSettingsStore } from '../stores/settings-store';
 import { getDefaultMcpConnectorIds } from '../../shared/utils/mcp-connectors';
 import { EMPTY_PLANNING_FORM, planningMetadata, type PlanningFormValue } from '../../shared/utils/task-planning';
@@ -51,10 +52,7 @@ export function TaskCreationWizard({
   // The project's branches (the shared list, no git calls when the dialog opens) and its own
   // git defaults, shared with the edit dialog
   const gitOptions = useTaskGitOptions(projectId);
-  const { projectDefaultBranch, projectPushNewBranches } = gitOptions;
-
-  // Determine if the selected branch is local (for useLocalBranch flag)
-  const isSelectedBranchLocal = baseBranch !== PROJECT_DEFAULT_BRANCH && gitOptions.isLocalBranch(baseBranch);
+  const { projectPushNewBranches } = gitOptions;
 
   // Images
   const [images, setImages] = useState<ImageAttachment[]>([]);
@@ -117,27 +115,18 @@ export function TaskCreationWizard({
     setError(null);
 
     try {
-      const metadata: TaskMetadata = { sourceType: 'manual' };
-      if (images.length > 0) metadata.attachedImages = images;
-      // Always include baseBranch - resolve PROJECT_DEFAULT_BRANCH to actual branch name
-      // This ensures the backend always knows which branch to use for worktree creation
-      if (baseBranch === PROJECT_DEFAULT_BRANCH) {
-        // Use the resolved project default branch
-        if (projectDefaultBranch) metadata.baseBranch = projectDefaultBranch;
-      } else if (baseBranch) {
-        metadata.baseBranch = baseBranch;
-      }
-      // Pass worktree preference - false means use --direct mode
-      if (!useWorktree) metadata.useWorktree = false;
-      // Set useLocalBranch when user explicitly selects a local branch
-      // This preserves gitignored files (.env, configs) by not switching to origin
-      if (isSelectedBranchLocal) metadata.useLocalBranch = true;
-      if (pushNewBranches !== projectPushNewBranches) metadata.pushNewBranches = pushNewBranches;
-      metadata.mcpConnectors = mcpConnectors;
-      // Only the planning fields that are set (a new task starts without the others)
-      for (const [key, value] of Object.entries(planningMetadata(planning, new Date()))) {
-        if (value !== undefined) Object.assign(metadata, { [key]: value });
-      }
+      // Shared with the board's capture bar, so both make tasks with the same defaults
+      const metadata = newTaskMetadata(
+        {
+          mcpConnectors,
+          images,
+          baseBranch,
+          useWorktree,
+          pushNewBranches,
+          planning: planningMetadata(planning, new Date())
+        },
+        gitOptions
+      );
 
       // The title is generated from the description (and refined by triage when the task starts)
       const task = await createTask(projectId, '', description.trim(), metadata);

@@ -722,6 +722,7 @@ export function App() {
                 {activeView === 'kanban' && (
                   <KanbanBoard
                     tasks={tasks}
+                    projectId={selectedProject.id}
                     onTaskClick={handleTaskClick}
                     onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
                     onRefresh={handleRefreshTasks}
