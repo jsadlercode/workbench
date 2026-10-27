@@ -33,3 +33,13 @@ export function formatDateTime(value: Date | string | number): string {
   const date = toDate(value);
   return date ? `${date.toLocaleDateString('en-US', DATE_OPTIONS)}, ${formatTime(date)}` : '';
 }
+
+/**
+ * A day as day and short month, like "3 Nov", with the year when it isn't the year of `now`
+ * ("3 Nov 2027"). For dates without a time, such as a task's deadline.
+ */
+export function formatShortDate(date: Date, now: Date = new Date()): string {
+  if (Number.isNaN(date.getTime())) return '';
+  const dayMonth = `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
+  return date.getFullYear() === now.getFullYear() ? dayMonth : `${dayMonth} ${date.getFullYear()}`;
+}

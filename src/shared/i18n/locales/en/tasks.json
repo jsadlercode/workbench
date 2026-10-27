@@ -278,6 +278,55 @@
     "incompleteDescription": "This task stopped before Claude Code finished it ({{completed}}/{{total}} task list items done). The process likely exited early. Resume to continue the same session.",
     "resume": "Resume task"
   },
+  "planning": {
+    "groups": {
+      "carried_over": "Carried over",
+      "this_week": "This week",
+      "next_week": "Next week",
+      "later": "Later",
+      "unplanned": "Not planned"
+    },
+    "choices": {
+      "this_week": "This week",
+      "next_week": "Next week",
+      "later": "Later",
+      "unplanned": "Not planned"
+    },
+    "plannedFor": {
+      "this_week": "Planned for this week",
+      "next_week": "Planned for next week",
+      "later": "Planned for later",
+      "weekOf": "Planned for the week of {{date}}"
+    },
+    "carriedOverFrom": "Carried over from the week of {{date}}",
+    "weekOf": "Week of {{date}}",
+    "deadline": {
+      "hard": "Due {{date}}",
+      "target": "By {{date}}",
+      "hardOverdue": "Was due {{date}}",
+      "targetOverdue": "Target was {{date}}"
+    },
+    "flagged": "Flagged",
+    "menu": {
+      "planFor": "Plan for",
+      "flag": "Flag",
+      "removeFlag": "Remove flag"
+    },
+    "saveFailed": "Couldn't save the change. Try again",
+    "form": {
+      "title": "Planning",
+      "when": "When",
+      "whenDescription": "The week you plan to work on it",
+      "notSet": "Not set",
+      "deadline": "Deadline",
+      "deadlineDescription": "The date it needs to be done by",
+      "clearDeadline": "Clear deadline",
+      "hardDeadline": "Hard deadline",
+      "hardDeadlineDescription": "A date you committed to, not a target",
+      "flag": "Flag",
+      "flagDescription": "Flagged tasks come first in their group"
+    }
+  },
   "yourSteps": {
     "title": "Your steps",
     "description": "What Claude Code left for you to do. Tick each step when it's done",

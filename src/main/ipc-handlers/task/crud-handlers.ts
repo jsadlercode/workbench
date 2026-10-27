@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, Dirent
 import { projectStore } from '../../project-store';
 import { titleGenerator } from '../../title-generator';
 import { AgentManager } from '../../agent';
-import { findTaskAndProject } from './shared';
+import { findTaskAndProject, mergeTaskMetadata } from './shared';
 import { findAllSpecPaths, isValidTaskId } from '../../utils/spec-path-helpers';
 import { isPathWithinBase, findTaskWorktree } from '../../worktree-paths';
 import { cleanupWorktree } from '../../utils/worktree-cleanup';
@@ -403,7 +403,8 @@ export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
           } catch {
             // Missing or unreadable: merge into the cached metadata
           }
-          updatedMetadata = { ...task.metadata, ...onDisk, ...updates.metadata };
+          // A field sent as undefined is removed (clearing a deadline or a planned week)
+          updatedMetadata = mergeTaskMetadata({ ...task.metadata, ...onDisk }, updates.metadata);
           // Keep the user's own description as the task card's source of truth
           if (updates.description !== undefined) {
             updatedMetadata.userDescription = updates.description;

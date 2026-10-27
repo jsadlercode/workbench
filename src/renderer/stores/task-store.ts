@@ -996,6 +996,42 @@ export async function setYourStepDone(taskId: string, text: string, done: boolea
   }
 }
 
+/** Planning fields the card menu changes; an undefined value removes the field */
+export type TaskPlanningChanges = Partial<Pick<TaskMetadata, 'plannedFor' | 'deadline' | 'hardDeadline' | 'flagged'>>;
+
+/**
+ * Change a task's planning (week, deadline, flag) from its card. The store changes right away;
+ * the change is then saved in the task's metadata, and undone when that fails.
+ */
+export async function setTaskPlanning(taskId: string, changes: TaskPlanningChanges): Promise<boolean> {
+  const store = useTaskStore.getState();
+  const task = store.tasks.find((t) => t.id === taskId);
+  if (!task) return false;
+
+  const previous = Object.fromEntries(
+    Object.keys(changes).map((key) => [key, task.metadata?.[key as keyof TaskPlanningChanges]])
+  ) as TaskPlanningChanges;
+  const metadata: TaskMetadata = { ...task.metadata, ...changes };
+  store.updateTask(taskId, { metadata });
+
+  const undo = () => {
+    // Only when no later change replaced this one
+    const current = useTaskStore.getState().tasks.find((t) => t.id === taskId);
+    if (current?.metadata === metadata) {
+      useTaskStore.getState().updateTask(taskId, { metadata: { ...current.metadata, ...previous } });
+    }
+  };
+  try {
+    const result = await window.electronAPI.updateTask(taskId, { metadata: changes });
+    if (result.success) return true;
+    undo();
+    return false;
+  } catch {
+    undo();
+    return false;
+  }
+}
+
 /**
  * Check if a task has an active running process
  */

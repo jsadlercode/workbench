@@ -8,6 +8,9 @@ import { cn, formatRelativeTime } from '../../lib/utils';
 import { JSON_ERROR_PREFIX } from '../../../shared/constants';
 import type { Task, WorktreeStatus } from '../../../shared/types';
 import { MarkdownContent } from '../ui/markdown-content';
+import { deadlineState } from '../../../shared/utils/task-planning';
+import { useToday } from '../../hooks/useToday';
+import { usePlanningLabels } from '../../hooks/usePlanningLabels';
 
 interface TaskMetadataProps {
   task: Task;
@@ -29,6 +32,8 @@ export function TaskMetadata({ task, worktreeStatus, worktreeAction }: TaskMetad
   const [hasOverflow, setHasOverflow] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const contentId = useId();
+  const today = useToday();
+  const planningLabels = usePlanningLabels();
 
   // Handle JSON error description with i18n
   const displayDescription = (() => {
@@ -62,7 +67,22 @@ export function TaskMetadata({ task, worktreeStatus, worktreeAction }: TaskMetad
       ].filter(Boolean) as { key: string; label: string }[]
     : [];
 
-  const metaItems: { key: string; label: string }[] = [
+  // Planning (read only; edited in the edit dialog and the card menu): flag, week, deadline
+  const deadline = deadlineState(task, today);
+  const deadlineTone = task.status === 'done' ? null : deadline?.tone;
+  const plannedFor = planningLabels.plannedFor(task.metadata?.plannedFor, today);
+  const planning = [
+    task.metadata?.flagged === true && { key: 'flagged', label: t('tasks:planning.flagged'), className: 'text-warning' },
+    plannedFor && { key: 'plannedFor', label: plannedFor },
+    deadline && {
+      key: 'deadline',
+      label: planningLabels.deadline(deadline, today),
+      className: deadlineTone === 'urgent' ? 'text-destructive' : deadlineTone === 'soon' ? 'text-warning' : undefined
+    }
+  ].filter(Boolean) as { key: string; label: string; className?: string }[];
+
+  const metaItems: { key: string; label: string; className?: string }[] = [
+    ...planning,
     ...origin,
     { key: 'created', label: t('tasks:metadata.created', { time: formatRelativeTime(task.createdAt) }) },
     { key: 'updated', label: t('tasks:metadata.updated', { time: formatRelativeTime(task.updatedAt) }) }
@@ -84,7 +104,7 @@ export function TaskMetadata({ task, worktreeStatus, worktreeAction }: TaskMetad
         {metaItems.map((item, idx) => (
           <span key={item.key} className="flex items-center gap-2">
             {idx > 0 && <span aria-hidden="true">·</span>}
-            <span>{item.label}</span>
+            <span className={item.className}>{item.label}</span>
           </span>
         ))}
       </div>

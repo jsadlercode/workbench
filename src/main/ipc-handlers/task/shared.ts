@@ -1,4 +1,4 @@
-import type { Task, Project } from '../../../shared/types';
+import type { Task, Project, TaskMetadata } from '../../../shared/types';
 import { projectStore } from '../../project-store';
 
 /**
@@ -38,3 +38,16 @@ export const findTaskAndProject = (taskId: string, projectId?: string): { task: 
 
   return { task: undefined, project: undefined };
 };
+
+/**
+ * A task's metadata after an update: the update's fields over the current ones, and a field the
+ * update sets to undefined (or null) removed. IPC keeps an undefined field, so this is how the
+ * dialogs and the card menu clear a field (a deadline, a planned week) in task_metadata.json.
+ */
+export function mergeTaskMetadata(current: TaskMetadata | undefined, updates: Partial<TaskMetadata>): TaskMetadata {
+  const merged: Record<string, unknown> = { ...current, ...updates };
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined || value === null) delete merged[key];
+  }
+  return merged as TaskMetadata;
+}

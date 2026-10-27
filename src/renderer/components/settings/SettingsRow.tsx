@@ -93,7 +93,7 @@ const THUMB_ANIMATION: KeyframeAnimationOptions = { duration: 200, easing: 'cubi
 
 /**
  * claude.ai segmented control: a translucent track with a raised thumb that slides (and
- * stretches) to the selected option.
+ * stretches) to the selected option. A value none of the options has selects nothing (no thumb).
  */
 export function SegmentedControl<T extends string>({
   value,
@@ -112,7 +112,12 @@ export function SegmentedControl<T extends string>({
   useLayoutEffect(() => {
     const thumb = thumbRef.current;
     const item = itemRefs.current.get(value);
-    if (!thumb || !item) return;
+    if (!thumb) return;
+    if (!item) {
+      thumb.style.visibility = 'hidden';
+      lastRectRef.current = null;
+      return;
+    }
 
     const place = (animate: boolean) => {
       const next = { x: item.offsetLeft, width: item.offsetWidth };
@@ -161,6 +166,9 @@ export function SegmentedControl<T extends string>({
     itemRefs.current.get(next.value)?.focus();
   };
 
+  // With nothing selected, the first option that can be picked takes the keyboard focus
+  const focusValue = options.some((o) => o.value === value) ? value : options.find((o) => !o.disabled)?.value;
+
   return (
     <div
       ref={trackRef}
@@ -189,7 +197,7 @@ export function SegmentedControl<T extends string>({
             role="radio"
             aria-checked={isSelected}
             aria-label={iconOnly && typeof option.label === 'string' ? option.label : undefined}
-            tabIndex={isSelected ? 0 : -1}
+            tabIndex={option.value === focusValue ? 0 : -1}
             disabled={option.disabled}
             onClick={() => {
               if (!option.disabled) onValueChange(option.value);

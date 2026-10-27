@@ -1,9 +1,9 @@
 /**
  * TaskEditDialog - Dialog for editing task details
  *
- * Edits the task's description, reference images, MCP connectors and git options - the base
- * branch and whether its branch is pushed (the title is kept). Model, effort and planning are
- * decided by the Claude Code triage run when the task starts.
+ * Edits the task's description, reference images, planning (week, deadline, flag), MCP connectors
+ * and git options - the base branch and whether its branch is pushed (the title is kept). Model,
+ * effort and whether to plan are decided by the Claude Code triage run when the task starts.
  *
  * The base branch is the one the task's next run starts from, and the branch its changes are
  * counted and merged against, so a task created with a branch that no longer exists can be
@@ -25,6 +25,8 @@ import { useProjectStore } from '../stores/project-store';
 import type { Task, TaskMetadata, ImageAttachment } from '../../shared/types';
 import { useSettingsStore } from '../stores/settings-store';
 import { getDefaultMcpConnectorIds } from '../../shared/utils/mcp-connectors';
+import { planningFormValue, planningMetadata, type PlanningFormValue, type PlanningMetadataUpdate } from '../../shared/utils/task-planning';
+import { useToday } from '../hooks/useToday';
 
 /**
  * Props for the TaskEditDialog component
@@ -59,6 +61,10 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
   // Image attachments
   const [images, setImages] = useState<ImageAttachment[]>(task.metadata?.attachedImages || []);
 
+  // Planning: the task's week (none selected for a past week or one after next week), deadline, flag
+  const today = useToday();
+  const [planning, setPlanning] = useState<PlanningFormValue>(() => planningFormValue(task.metadata, today));
+
   // MCP connectors: the task's own choice, or the Connectors defaults for tasks created before
   // connectors were per task. Saving changes only this task
   const taskConnectors = task.metadata?.mcpConnectors ?? getDefaultMcpConnectorIds(settings.mcpConnectors);
@@ -80,6 +86,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
       setMcpConnectors(task.metadata?.mcpConnectors ?? getDefaultMcpConnectorIds(settings.mcpConnectors));
       setBaseBranch(task.metadata?.baseBranch || PROJECT_DEFAULT_BRANCH);
       setPushNewBranches(task.metadata?.pushNewBranches ?? gitOptions.projectPushNewBranches);
+      setPlanning(planningFormValue(task.metadata, new Date()));
       setError(null);
     }
   }, [open, task, settings.mcpConnectors, gitOptions.projectPushNewBranches]);
@@ -93,7 +100,12 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
 
     // Check if anything changed
     const trimmedDescription = description.trim();
+    const planningUpdates = planningMetadata(planning, today);
+    const savedPlanning = planningMetadata(planningFormValue(task.metadata, today), today);
+    const planningChanged = (Object.keys(planningUpdates) as (keyof PlanningMetadataUpdate)[])
+      .some((key) => planningUpdates[key] !== savedPlanning[key]);
     const hasChanges =
+      planningChanged ||
       trimmedDescription !== task.description ||
       [...mcpConnectors].sort().join(',') !== [...taskConnectors].sort().join(',') ||
       baseBranch !== taskBaseBranch ||
@@ -127,7 +139,9 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
       baseBranch: resolvedBaseBranch,
       useLocalBranch,
       // Unset again when it matches the project's own setting, so the task follows it
-      pushNewBranches: pushNewBranches === gitOptions.projectPushNewBranches ? undefined : pushNewBranches
+      pushNewBranches: pushNewBranches === gitOptions.projectPushNewBranches ? undefined : pushNewBranches,
+      // Every planning field; a cleared one is removed from the task
+      ...planningUpdates
     };
 
     const success = await persistUpdateTask(task.id, {
@@ -179,6 +193,8 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
         onDescriptionChange={setDescription}
         images={images}
         onImagesChange={setImages}
+        planning={planning}
+        onPlanningChange={setPlanning}
         mcpConnectors={mcpConnectors}
         onMcpConnectorsChange={setMcpConnectors}
         disabled={isSaving}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, Play, Square, Loader2, RotateCcw, Archive, GitPullRequest, MoreVertical, ListChecks } from 'lucide-react';
+import { AlertCircle, Play, Square, Loader2, RotateCcw, Archive, GitPullRequest, MoreVertical, ListChecks, Flag, CalendarClock } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -19,8 +19,11 @@ import {
   JSON_ERROR_PREFIX,
   JSON_ERROR_TITLE_SUFFIX
 } from '../../shared/constants';
-import { stopTask, checkTaskRunning, isIncompleteHumanReview, archiveTasks, hasRecentActivity, startTaskOrQueue, taskHasErrors, retryTask } from '../stores/task-store';
+import { stopTask, checkTaskRunning, isIncompleteHumanReview, archiveTasks, hasRecentActivity, startTaskOrQueue, taskHasErrors, retryTask, setTaskPlanning, type TaskPlanningChanges } from '../stores/task-store';
 import { getYourSteps } from '../../shared/utils/your-steps';
+import { deadlineState, plannedForChoice, type DeadlineTone, type PlanChoice } from '../../shared/utils/task-planning';
+import { useToday } from '../hooks/useToday';
+import { usePlanningLabels } from '../hooks/usePlanningLabels';
 import type { Task, TaskStatus } from '../../shared/types';
 
 // Stuck detection interval (ms). XState handles normal process exits (PROCESS_EXITED); this
@@ -30,6 +33,16 @@ const STUCK_CHECK_INTERVAL_MS = 60_000;
 
 // Icon-only buttons, like the settings dialog's (muted icon, nav hover background)
 const ICON_BUTTON_CLASS = 'h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-nav-hover hover:text-foreground';
+
+// Deadline badge colors by tone, in the "your steps" badge's look (color text and border, 10% tint)
+const DEADLINE_TONE_CLASS: Record<NonNullable<DeadlineTone> | 'none', string> = {
+  urgent: 'border-current bg-destructive/10 text-destructive',
+  soon: 'border-current bg-warning/10 text-warning',
+  none: 'border-border text-(--nav-label-color)'
+};
+
+// The card menu's "Plan for" items, in menu order
+const PLAN_MENU_CHOICES: readonly PlanChoice[] = ['this_week', 'next_week', 'later', 'unplanned'];
 
 interface TaskCardProps {
   task: Task;
@@ -64,7 +77,12 @@ function taskCardPropsAreEqual(prevProps: TaskCardProps, nextProps: TaskCardProp
     prevTask.metadata?.prUrl === nextTask.metadata?.prUrl &&
     // "Your steps": the run's list and the ones the user ticked
     prevTask.claudeRun?.validation === nextTask.claudeRun?.validation &&
-    prevTask.metadata?.yourStepsDone === nextTask.metadata?.yourStepsDone
+    prevTask.metadata?.yourStepsDone === nextTask.metadata?.yourStepsDone &&
+    // Planning: the flag, the deadline badge and the menu's week
+    prevTask.metadata?.plannedFor === nextTask.metadata?.plannedFor &&
+    prevTask.metadata?.deadline === nextTask.metadata?.deadline &&
+    prevTask.metadata?.hardDeadline === nextTask.metadata?.hardDeadline &&
+    prevTask.metadata?.flagged === nextTask.metadata?.flagged
   );
 
   // Only log when actually re-rendering (reduces noise significantly)
@@ -94,6 +112,8 @@ export const TaskCard = memo(function TaskCard({
   // Why starting or retrying from the card failed, shown under the description
   const [actionError, setActionError] = useState<string | null>(null);
   const stuckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const today = useToday();
+  const planningLabels = usePlanningLabels();
 
   const isRunning = task.status === 'in_progress';
   // Validation (AI Review) also runs Claude Code, so it can be left stuck too (e.g. by an app quit)
@@ -224,6 +244,12 @@ export const TaskCard = memo(function TaskCard({
     }
   };
 
+  // Plan for / Flag from the menu: shown right away, undone with a message when saving fails
+  const handlePlanningChange = async (changes: TaskPlanningChanges) => {
+    const saved = await setTaskPlanning(task.id, changes);
+    setActionError(saved ? null : t('planning.saveFailed'));
+  };
+
   const handleViewPR = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (task.metadata?.prUrl && window.electronAPI?.openExternal) {
@@ -234,6 +260,10 @@ export const TaskCard = memo(function TaskCard({
   const isArchived = !!task.metadata?.archivedAt;
   // Steps the run left for the user that aren't ticked yet
   const yourSteps = getYourSteps(task);
+  const isFlagged = task.metadata?.flagged === true;
+  // The deadline, in a neutral tone once the task is done
+  const deadline = deadlineState(task, today);
+  const deadlineTone = task.status === 'done' ? null : deadline?.tone ?? null;
   // Failed tasks show the usage badge's "sign in again" alert icon next to the title; stuck
   // tasks show it in the color of their "Stuck" label
   const hasErrors = taskHasErrors(task);
@@ -252,6 +282,13 @@ export const TaskCard = memo(function TaskCard({
           <div>
             {/* Title, with an alert icon at the right when the task failed */}
             <div className="flex items-start gap-2">
+              {isFlagged && (
+                <Flag
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-current text-warning"
+                  strokeWidth={2}
+                  aria-label={t('planning.flagged')}
+                />
+              )}
               <h3
                 className="min-w-0 flex-1 font-bold text-sm text-foreground line-clamp-2 leading-snug wrap-anywhere"
                 title={displayTitle}
@@ -278,17 +315,25 @@ export const TaskCard = memo(function TaskCard({
             {actionError}
           </p>
         )}
-        {/* The steps left for the user, in the dialog's status label look (color text and
-            border, 10% tint) */}
-        {yourSteps.open > 0 && (
+        {/* The deadline, then the steps left for the user, in the dialog's status label look
+            (color text and border, 10% tint) */}
+        {(deadline || yourSteps.open > 0) && (
           <div className="mt-2.5 flex flex-wrap gap-1.5">
-            <Badge
-              variant="outline"
-              className="gap-1.5 border-current bg-(--column-human-review)/10 text-xs text-(--column-human-review)"
-            >
-              <ListChecks className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-              {t('yourSteps.cardLeft', { open: yourSteps.open, count: yourSteps.total })}
-            </Badge>
+            {deadline && (
+              <Badge variant="outline" className={cn('gap-1.5 text-xs', DEADLINE_TONE_CLASS[deadlineTone ?? 'none'])}>
+                <CalendarClock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                {planningLabels.deadline(deadline, today)}
+              </Badge>
+            )}
+            {yourSteps.open > 0 && (
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-current bg-(--column-human-review)/10 text-xs text-(--column-human-review)"
+              >
+                <ListChecks className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                {t('yourSteps.cardLeft', { open: yourSteps.open, count: yourSteps.total })}
+              </Badge>
+            )}
           </div>
         )}
 
@@ -364,8 +409,8 @@ export const TaskCard = memo(function TaskCard({
               </Button>
             )}
 
-            {/* Move to menu for keyboard accessibility */}
-            {statusMenuItems && (
+            {/* Task menu: Move to (also for keyboard users), Plan for and Flag */}
+            {onStatusChange && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -379,9 +424,28 @@ export const TaskCard = memo(function TaskCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuLabel>{t('actions.moveTo')}</DropdownMenuLabel>
+                  {statusMenuItems && (
+                    <>
+                      <DropdownMenuLabel>{t('actions.moveTo')}</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {statusMenuItems}
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuLabel>{t('planning.menu.planFor')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {statusMenuItems}
+                  {PLAN_MENU_CHOICES.map((choice) => (
+                    <DropdownMenuItem
+                      key={choice}
+                      onClick={() => void handlePlanningChange({ plannedFor: plannedForChoice(choice, today) })}
+                    >
+                      {t(`planning.choices.${choice}`)}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => void handlePlanningChange({ flagged: isFlagged ? undefined : true })}>
+                    {isFlagged ? t('planning.menu.removeFlag') : t('planning.menu.flag')}
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

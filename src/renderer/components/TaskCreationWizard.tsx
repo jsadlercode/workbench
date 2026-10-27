@@ -20,6 +20,7 @@ import { createTask, saveDraft, loadDraft, clearDraft, isDraftEmpty, type TaskCr
 import type { TaskMetadata, ImageAttachment } from '../../shared/types';
 import { useSettingsStore } from '../stores/settings-store';
 import { getDefaultMcpConnectorIds } from '../../shared/utils/mcp-connectors';
+import { EMPTY_PLANNING_FORM, planningMetadata, type PlanningFormValue } from '../../shared/utils/task-planning';
 
 interface TaskCreationWizardProps {
   projectId: string;
@@ -58,6 +59,9 @@ export function TaskCreationWizard({
   // Images
   const [images, setImages] = useState<ImageAttachment[]>([]);
 
+  // Planning: week, deadline and flag (new tasks start not planned)
+  const [planning, setPlanning] = useState<PlanningFormValue>(EMPTY_PLANNING_FORM);
+
   // MCP connectors start from the Connectors defaults; changes stay with this task
   const defaultConnectors = useMemo(() => getDefaultMcpConnectorIds(settings.mcpConnectors), [settings.mcpConnectors]);
   const [mcpConnectors, setMcpConnectors] = useState<string[]>(defaultConnectors);
@@ -84,6 +88,7 @@ export function TaskCreationWizard({
         setBaseBranch(PROJECT_DEFAULT_BRANCH);
         setUseWorktree(true);
         setPushNewBranches(projectPushNewBranches);
+        setPlanning(EMPTY_PLANNING_FORM);
         setIsDraftRestored(false);
       }
     }
@@ -129,6 +134,10 @@ export function TaskCreationWizard({
       if (isSelectedBranchLocal) metadata.useLocalBranch = true;
       if (pushNewBranches !== projectPushNewBranches) metadata.pushNewBranches = pushNewBranches;
       metadata.mcpConnectors = mcpConnectors;
+      // Only the planning fields that are set (a new task starts without the others)
+      for (const [key, value] of Object.entries(planningMetadata(planning, new Date()))) {
+        if (value !== undefined) Object.assign(metadata, { [key]: value });
+      }
 
       // The title is generated from the description (and refined by triage when the task starts)
       const task = await createTask(projectId, '', description.trim(), metadata);
@@ -153,6 +162,7 @@ export function TaskCreationWizard({
     setBaseBranch(PROJECT_DEFAULT_BRANCH);
     setUseWorktree(true);
     setPushNewBranches(projectPushNewBranches);
+    setPlanning(EMPTY_PLANNING_FORM);
     setError(null);
     setIsDraftRestored(false);
   };
@@ -243,6 +253,8 @@ export function TaskCreationWizard({
         descriptionPlaceholder={t('tasks:wizard.descriptionPlaceholder')}
         images={images}
         onImagesChange={setImages}
+        planning={planning}
+        onPlanningChange={setPlanning}
         mcpConnectors={mcpConnectors}
         onMcpConnectorsChange={setMcpConnectors}
         disabled={isCreating}

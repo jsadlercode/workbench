@@ -4,9 +4,10 @@
  * Bundles the common form fields used in both TaskCreationWizard and TaskEditDialog:
  * - Description: a composer like the Claude page's (Insights) input, with image thumbnails,
  *   a paperclip button to attach images, paste (Ctrl/Cmd+V) and drag and drop
+ * - Planning (the week, deadline and flag the user tracks the task by)
  * - Connectors (MCP servers for the task's Claude Code session)
  *
- * Model, effort and planning are decided per task by the Claude Code triage run.
+ * Model, effort and whether to plan are decided per task by the Claude Code triage run.
  */
 import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +17,9 @@ import { useImageUpload } from './useImageUpload';
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { cn } from '../../lib/utils';
 import { TaskConnectorRows } from './TaskConnectorRows';
+import { TaskPlanningSection } from './TaskPlanningSection';
 import type { ImageAttachment } from '../../../shared/types';
+import type { PlanningFormValue } from '../../../shared/utils/task-planning';
 import { AttachmentTile } from './AttachmentTile';
 import { useAttachmentThumbnails } from './useAttachmentThumbnails';
 
@@ -33,6 +36,10 @@ interface TaskFormFieldsProps {
   // Images
   images: ImageAttachment[];
   onImagesChange: (images: ImageAttachment[]) => void;
+
+  // Planning (week, deadline, flag); the section shows when a change handler is given
+  planning?: PlanningFormValue;
+  onPlanningChange?: (value: PlanningFormValue) => void;
 
   // MCP connectors for this task (ids); the rows show when a change handler is given
   mcpConnectors?: string[];
@@ -58,6 +65,8 @@ export function TaskFormFields({
   descriptionPlaceholder,
   images,
   onImagesChange,
+  planning,
+  onPlanningChange,
   mcpConnectors = [],
   onMcpConnectorsChange,
   disabled = false,
@@ -212,6 +221,16 @@ export function TaskFormFields({
             </div>
           )}
         </div>
+
+        {/* The week, deadline and flag the user tracks the task by */}
+        {planning && onPlanningChange && (
+          <TaskPlanningSection
+            value={planning}
+            onChange={onPlanningChange}
+            disabled={disabled}
+            idPrefix={idPrefix}
+          />
+        )}
 
         {/* MCP connectors for the task's Claude Code session */}
         {onMcpConnectorsChange && (

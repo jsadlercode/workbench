@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef, memo } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, memo, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useViewState } from '../contexts/ViewStateContext';
 import {
@@ -30,6 +30,8 @@ import { TaskCard } from './TaskCard';
 import { SortableTaskCard } from './SortableTaskCard';
 import { TASK_STATUS_COLUMNS, TASK_STATUS_LABELS } from '../../shared/constants';
 import { sortColumnTasks } from '../../shared/utils/task-column-order';
+import { groupBacklog, hasPlannedGroups, type BacklogGroup } from '../../shared/utils/task-planning';
+import { useToday } from '../hooks/useToday';
 import { cn } from '../lib/utils';
 import { persistTaskStatus, forceCompleteTask, archiveTasks, useTaskStore, isQueueAtCapacity } from '../stores/task-store';
 import { resolveMaxParallelTasks, getTaskColumn as getVisualColumn, canMoveTask } from '../../shared/constants/task';
@@ -85,6 +87,13 @@ interface DroppableColumnProps {
   archivedCount?: number;
   showArchived?: boolean;
   onToggleArchived?: () => void;
+  /** Backlog: the tasks grouped by planned week, shown with a heading per group. `tasks` holds them in the same order */
+  groups?: BacklogGroup<Task>[];
+}
+
+/** The groups' headings and counts, to tell whether they changed */
+function groupsSignature(groups?: BacklogGroup<Task>[]): string {
+  return groups?.map((group) => `${group.horizon}:${group.tasks.length}`).join('|') ?? '';
 }
 
 /**
@@ -104,7 +113,7 @@ function tasksAreEquivalent(prevTasks: Task[], nextTasks: Task[]): boolean {
       prev.status !== next.status ||
       prev.executionProgress?.phase !== next.executionProgress?.phase ||
       prev.updatedAt !== next.updatedAt ||
-      // Metadata changed in the store (ticked "your steps")
+      // Metadata changed in the store (the card menu's planning, ticked "your steps")
       prev.metadata !== next.metadata
     ) {
       return false;
@@ -132,6 +141,7 @@ function droppableColumnPropsAreEqual(
   if (prevProps.archivedCount !== nextProps.archivedCount) return false;
   if (prevProps.showArchived !== nextProps.showArchived) return false;
   if (prevProps.onToggleArchived !== nextProps.onToggleArchived) return false;
+  if (groupsSignature(prevProps.groups) !== groupsSignature(nextProps.groups)) return false;
 
   // Deep compare tasks
   const tasksEqual = tasksAreEquivalent(prevProps.tasks, nextProps.tasks);
@@ -191,7 +201,7 @@ const getEmptyStateContent = (status: TaskStatus, t: (key: string) => string): {
   }
 };
 
-const DroppableColumn = memo(function DroppableColumn({ status, tasks, onTaskClick, onStatusChange, isOver, onAddClick, onArchiveAll, onOpenSettings, maxParallelTasks, archivedCount, showArchived, onToggleArchived }: DroppableColumnProps) {
+const DroppableColumn = memo(function DroppableColumn({ status, tasks, onTaskClick, onStatusChange, isOver, onAddClick, onArchiveAll, onOpenSettings, maxParallelTasks, archivedCount, showArchived, onToggleArchived, groups }: DroppableColumnProps) {
   const { t } = useTranslation(['tasks', 'common']);
   const { setNodeRef } = useDroppable({
     id: status
@@ -221,15 +231,31 @@ const DroppableColumn = memo(function DroppableColumn({ status, tasks, onTaskCli
   // Memoize task card elements to prevent recreation on every render
   const taskCards = useMemo(() => {
     if (tasks.length === 0) return null;
-    return tasks.map((task) => (
+    const card = (task: Task) => (
       <SortableTaskCard
         key={task.id}
         task={task}
         onClick={onClickHandlers.get(task.id)!}
         onStatusChange={onStatusChangeHandlers.get(task.id)}
       />
+    );
+    if (!groups) return tasks.map(card);
+    // Backlog groups: a small heading with the count over each group's cards
+    return groups.map((group) => (
+      <Fragment key={group.horizon}>
+        <h3
+          className={cn(
+            'flex items-center gap-1.5 px-1 pt-1 text-xs font-medium',
+            group.horizon === 'carried_over' ? 'text-warning' : 'text-(--nav-label-color)'
+          )}
+        >
+          <span>{t(`planning.groups.${group.horizon}`)}</span>
+          <span className="tabular-nums">{group.tasks.length}</span>
+        </h3>
+        {group.tasks.map(card)}
+      </Fragment>
     ));
-  }, [tasks, onClickHandlers, onStatusChangeHandlers]);
+  }, [tasks, groups, onClickHandlers, onStatusChangeHandlers, t]);
 
   const getColumnBorderColor = (): string => {
     switch (status) {
@@ -464,8 +490,10 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
 
   // Get task order from store for custom ordering
   const taskOrder = useTaskStore((state) => state.taskOrder);
+  // Planned weeks and deadlines are read against today, which moves on at midnight
+  const today = useToday();
 
-  const tasksByStatus = useMemo(() => {
+  const { tasksByStatus, backlogGroups } = useMemo(() => {
     // Note: pr_created tasks are shown in the 'human_review' column until their PR is merged
     // Note: error tasks are shown in the 'human_review' column since they need human attention
     const grouped: Record<typeof TASK_STATUS_COLUMNS[number], Task[]> = {
@@ -491,8 +519,14 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
       grouped[statusKey] = sortColumnTasks(grouped[statusKey], taskOrder?.[statusKey]);
     });
 
-    return grouped;
-  }, [filteredTasks, taskOrder]);
+    // Backlog: grouped by planned week when any task is planned (one flat list otherwise), with
+    // flagged tasks and then the nearest deadline first; the saved order breaks ties. The column's
+    // list is the rendered order, so dragging inside it lines up with the cards
+    const groups = groupBacklog(grouped.backlog, today);
+    grouped.backlog = groups.flatMap((group) => group.tasks);
+
+    return { tasksByStatus: grouped, backlogGroups: hasPlannedGroups(groups) ? groups : undefined };
+  }, [filteredTasks, taskOrder, today]);
 
   const handleArchiveAll = async () => {
     // Get projectId from the first task (all tasks should have the same projectId)
@@ -812,6 +846,7 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
               archivedCount={status === 'done' ? archivedCount : undefined}
               showArchived={status === 'done' ? showArchived : undefined}
               onToggleArchived={status === 'done' ? toggleShowArchived : undefined}
+              groups={status === 'backlog' ? backlogGroups : undefined}
             />
           ))}
         </div>

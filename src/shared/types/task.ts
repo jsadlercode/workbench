@@ -208,6 +208,13 @@ export interface TaskMetadata {
   // revision that keeps a step keeps its tick
   yourStepsDone?: string[];
 
+  // Planning (src/shared/utils/task-planning.ts): the week the user plans to do the task, as the
+  // local Monday of that week (`YYYY-MM-DD`) or 'later'; unset means not planned
+  plannedFor?: string;
+  deadline?: string;  // `YYYY-MM-DD`
+  hardDeadline?: boolean;  // A committed deadline, as opposed to a target date
+  flagged?: boolean;
+
   // Archive status
   archivedAt?: string;  // ISO date when task was archived
   archivedInVersion?: string;  // Version in which task was archived (from changelog)
